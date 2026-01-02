@@ -57,6 +57,15 @@ export function Message({ message }: MessageProps) {
           "prose prose-invert max-w-none text-base md:text-lg leading-relaxed break-words",
           isUser ? "text-foreground" : "text-gray-100"
         )}>
+          {message.imageUrl && (
+            <div className="mb-4">
+              <img 
+                src={message.imageUrl} 
+                alt="Attachment" 
+                className="max-h-64 rounded-xl border border-white/10 shadow-lg object-contain bg-black/20" 
+              />
+            </div>
+          )}
           {isUser ? (
             <p className="whitespace-pre-wrap">{message.content}</p>
           ) : (

@@ -101,12 +101,12 @@ export function useSendMessage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ chatId, content }: { chatId: number; content: string }) => {
+    mutationFn: async ({ chatId, content, imageUrl }: { chatId: number; content: string; imageUrl?: string }) => {
       const url = buildUrl(api.chats.addMessage.path, { id: chatId });
       const res = await fetch(url, {
         method: api.chats.addMessage.method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, imageUrl }),
         credentials: "include",
       });
 
@@ -117,7 +117,7 @@ export function useSendMessage() {
       
       return api.chats.addMessage.responses[201].parse(await res.json());
     },
-    onMutate: async ({ chatId, content }) => {
+    onMutate: async ({ chatId, content, imageUrl }) => {
       // Optimistic Update: Immediately show user message
       await queryClient.cancelQueries({ queryKey: [api.chats.get.path, chatId] });
       const previousData = queryClient.getQueryData([api.chats.get.path, chatId]);
@@ -133,6 +133,7 @@ export function useSendMessage() {
               chatId,
               role: "user",
               content,
+              imageUrl: imageUrl || null,
               createdAt: new Date(),
             },
           ],

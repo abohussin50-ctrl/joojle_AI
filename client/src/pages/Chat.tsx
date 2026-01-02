@@ -3,7 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { useChat, useSendMessage } from "@/hooks/use-chat";
 import { Sidebar } from "@/components/Sidebar";
 import { Message, TypingIndicator } from "@/components/Message";
-import { SendHorizontal, Sparkles, AlertCircle } from "lucide-react";
+import { SendHorizontal, Sparkles, AlertCircle, Mic, Image as ImageIcon, Languages, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -15,8 +15,12 @@ export default function Chat() {
   const sendMessage = useSendMessage();
   
   const [input, setInput] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isArabic, setIsArabic] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -33,10 +37,22 @@ export default function Chat() {
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!input.trim() || !chatId || sendMessage.isPending) return;
+    if ((!input.trim() && !imageUrl) || !chatId || sendMessage.isPending) return;
 
-    sendMessage.mutate({ chatId, content: input });
+    let finalContent = input;
+    if (isArabic && !input.trim()) {
+      // Handle empty input with image in Arabic mode if needed, 
+      // but usually we just send the image with optional text
+    }
+
+    sendMessage.mutate({ 
+      chatId, 
+      content: input || (imageUrl ? "Analyze this image" : ""), 
+      imageUrl: imageUrl || undefined 
+    });
+    
     setInput("");
+    setImageUrl(null);
     
     // Reset height
     if (textareaRef.current) {
@@ -48,6 +64,33 @@ export default function Chat() {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const toggleMic = () => {
+    setIsRecording(!isRecording);
+    // In a real app, this would trigger Web Speech API
+    if (!isRecording) {
+      // Simulate voice-to-text
+      setTimeout(() => {
+        if (isArabic) {
+          setInput(prev => prev + " كيف حالك؟");
+        } else {
+          setInput(prev => prev + " Hello, how are you?");
+        }
+        setIsRecording(false);
+      }, 2000);
     }
   };
 
@@ -74,7 +117,10 @@ export default function Chat() {
   }
 
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden font-body">
+    <div className={cn(
+      "flex h-screen bg-background text-foreground overflow-hidden font-body",
+      isArabic && "rtl"
+    )} dir={isArabic ? "rtl" : "ltr"}>
       <Sidebar />
 
       <main className="flex-1 ml-0 md:ml-72 flex flex-col h-full relative">
@@ -101,28 +147,87 @@ export default function Chat() {
         {/* Input Area */}
         <div className="p-4 md:p-6 bg-gradient-to-t from-background via-background to-transparent z-20">
           <div className="max-w-3xl mx-auto relative group">
+            {/* Image Preview */}
+            <AnimatePresence>
+              {imageUrl && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute bottom-full mb-4 left-0"
+                >
+                  <div className="relative group/img">
+                    <img src={imageUrl} alt="Upload preview" className="h-20 w-20 object-cover rounded-xl border-2 border-primary/50" />
+                    <button 
+                      onClick={() => setImageUrl(null)}
+                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover/img:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Glow effect */}
             <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 to-accent/50 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
             
             <div className="relative bg-card rounded-2xl border border-white/10 shadow-2xl flex items-end overflow-hidden focus-within:ring-1 focus-within:ring-primary/50 transition-all">
+              <div className="pb-3 pl-3 flex gap-1">
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleImageUpload} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-white/5"
+                  title="Upload image"
+                >
+                  <ImageIcon className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={toggleMic}
+                  className={cn(
+                    "p-2 transition-colors rounded-lg hover:bg-white/5",
+                    isRecording ? "text-destructive animate-pulse" : "text-muted-foreground hover:text-primary"
+                  )}
+                  title="Voice input"
+                >
+                  <Mic className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setIsArabic(!isArabic)}
+                  className={cn(
+                    "p-2 transition-colors rounded-lg hover:bg-white/5",
+                    isArabic ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"
+                  )}
+                  title="Toggle Arabic"
+                >
+                  <Languages className="w-5 h-5" />
+                </button>
+              </div>
+
               <textarea
                 ref={textareaRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask anything..."
+                placeholder={isArabic ? "اسأل أي شيء..." : "Ask anything..."}
                 rows={1}
-                className="w-full bg-transparent text-foreground placeholder:text-muted-foreground/60 border-0 py-4 pl-4 pr-12 resize-none max-h-48 focus:ring-0 text-base md:text-lg scrollbar-thin"
+                className="w-full bg-transparent text-foreground placeholder:text-muted-foreground/60 border-0 py-4 px-4 resize-none max-h-48 focus:ring-0 text-base md:text-lg scrollbar-thin"
                 disabled={sendMessage.isPending}
               />
               
               <div className="pb-3 pr-3">
                 <button
                   onClick={() => handleSubmit()}
-                  disabled={!input.trim() || sendMessage.isPending}
+                  disabled={(!input.trim() && !imageUrl) || sendMessage.isPending}
                   className={cn(
                     "p-2 rounded-xl transition-all duration-200 flex items-center justify-center",
-                    input.trim() 
+                    (input.trim() || imageUrl)
                       ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90" 
                       : "bg-secondary text-muted-foreground cursor-not-allowed"
                   )}
@@ -138,7 +243,7 @@ export default function Chat() {
 
             <div className="text-center mt-2">
               <p className="text-[10px] text-muted-foreground/50">
-                Joojle AI can make mistakes. Verify important information.
+                {isArabic ? "يمكن أن يخطئ Joojle AI. تحقق من المعلومات المهمة." : "Joojle AI can make mistakes. Verify important information."}
               </p>
             </div>
           </div>

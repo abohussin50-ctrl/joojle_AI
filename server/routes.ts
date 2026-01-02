@@ -66,44 +66,49 @@ export async function registerRoutes(
       return res.status(404).json({ message: "Chat not found" });
     }
 
-    const { content } = req.body;
+    const { content, imageUrl } = req.body;
     
     // 1. Save user message
     await storage.createMessage({
       chatId: id,
       role: "user",
-      content: content
+      content: content,
+      imageUrl: imageUrl || null
     });
 
     // 2. Get AI response
     try {
-      // Fetch recent history for context (last 10 messages)
+      // Fetch recent history for context
       const history = await storage.getMessages(id);
-      const messages = history.map(m => ({
+      const messagesForAI = history.map(m => ({
         role: m.role as "user" | "assistant" | "system",
         content: m.content
       }));
 
-      const response = await openai.chat.completions.create({
+      // Use a prompt that encourages Arabic if the user speaks it, and mentions multimodal capabilities
+      const systemPrompt = "You are Joojle AI, a helpful and intelligent AI assistant. You support Arabic and can analyze images if provided. Responses should be helpful and concise.";
+
+      const aiResponse = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
-          { role: "system", content: "You are Joojle AI, a helpful and intelligent AI assistant. You are similar to Gemini." },
-          ...messages
+          { role: "system", content: systemPrompt },
+          ...messagesForAI
         ],
       });
 
-      const aiContent = response.choices[0].message.content || "I couldn't generate a response.";
+      const aiContent = aiResponse.choices[0].message.content || "I couldn't generate a response.";
 
       // 3. Save AI message
       const aiMessage = await storage.createMessage({
         chatId: id,
         role: "assistant",
-        content: aiContent
+        content: aiContent,
+        imageUrl: null
       });
 
       res.status(201).json(aiMessage);
     } catch (error: any) {
-      console.error("OpenAI Error:", error);
+      console.error("AI Error:", error);
       res.status(500).json({ message: "Failed to generate AI response: " + error.message });
     }
   });

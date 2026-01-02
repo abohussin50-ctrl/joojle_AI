@@ -13,6 +13,7 @@ export const messages = pgTable("messages", {
   chatId: integer("chat_id").notNull(),
   role: text("role").notNull(), // 'user' or 'system' or 'assistant'
   content: text("content").notNull(),
+  imageUrl: text("image_url"), // Added for image attachments
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

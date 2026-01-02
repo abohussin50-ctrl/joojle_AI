@@ -43,6 +43,7 @@ export const api = {
       path: "/api/chats/:id/messages",
       input: z.object({
         content: z.string(),
+        imageUrl: z.string().optional(), // Added for image support
       }),
       responses: {
         201: z.custom<typeof messages.$inferSelect>(), // returns the assistant response

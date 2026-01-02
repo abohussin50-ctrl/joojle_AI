@@ -67,30 +67,75 @@ export default function Chat() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImageUrl(reader.result as string);
+      reader.onloadend = async () => {
+        const base64Image = reader.result as string;
+        setImageUrl(base64Image);
+
+        // Optionally, send the image immediately with a default prompt
+        if (chatId) {
+          sendMessage.mutate({
+            chatId,
+            content: "Analyze this image and tell me what you see.",
+            imageUrl: base64Image,
+          });
+        }
+        setInput(""); // Clear the input
       };
       reader.readAsDataURL(file);
     }
   };
+  let recognition: SpeechRecognition | null = null;
 
   const toggleMic = () => {
-    setIsRecording(!isRecording);
-    // In a real app, this would trigger Web Speech API
-    if (!isRecording) {
-      // Simulate voice-to-text
-      setTimeout(() => {
-        if (isArabic) {
-          setInput(prev => prev + " كيف حالك؟");
-        } else {
-          setInput(prev => prev + " Hello, how are you?");
-        }
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      alert("المتصفح لا يدعم البحث الصوتي");
+      return;
+    }
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!recognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = isArabic ? "ar-SA" : "en-US";
+
+      recognition.onstart = () => {
+        setIsRecording(true);
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(transcript);
+        handleSubmit(); // Automatically submit the transcribed text
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Speech error:", event.error);
         setIsRecording(false);
-      }, 2000);
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+      };
+    }
+
+    if (isRecording) {
+      recognition.stop();
+      setIsRecording(false);
+    } else {
+      recognition.lang = isArabic ? "ar-SA" : "en-US";
+      try {
+        recognition.start();
+      } catch (error) {
+        console.error("Recognition start error:", error);
+        setIsRecording(false); // Ensure recording state is false in case of errors
+      }
     }
   };
 

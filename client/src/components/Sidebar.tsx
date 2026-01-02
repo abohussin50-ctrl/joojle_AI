@@ -104,7 +104,7 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="p-4 border-t border-white/5 text-xs text-muted-foreground text-center">
-        <p>Joojle AI &copy; 2024</p>
+        <p>joojle AI &copy; 2025</p>
       </div>
     </div>
   );

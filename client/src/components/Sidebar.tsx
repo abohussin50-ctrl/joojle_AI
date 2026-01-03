@@ -38,14 +38,20 @@ export function Sidebar() {
   const SettingsMenu = () => (
     <div className="flex flex-col w-64 bg-[#1e1f20] border border-white/10 rounded-xl overflow-hidden shadow-2xl">
       <div className="flex flex-col py-2">
-        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+        <button 
+          onClick={() => window.open('https://myactivity.google.com', '_blank')}
+          className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground"
+        >
           <div className="flex items-center gap-3">
             <History className="w-4 h-4 opacity-70" />
             <span>{t("settings.activity")}</span>
           </div>
         </button>
         
-        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+        <button 
+          onClick={() => alert("Gemini Instructions")}
+          className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground"
+        >
           <div className="flex items-center gap-3">
             <UserRound className="w-4 h-4 opacity-70" />
             <span>{t("settings.geminiInstructions")}</span>
@@ -53,7 +59,10 @@ export function Sidebar() {
           <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
         </button>
 
-        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+        <button 
+          onClick={() => alert("Extensions")}
+          className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground"
+        >
           <div className="flex items-center gap-3">
             <Puzzle className="w-4 h-4 opacity-70" />
             <span>{t("settings.extensions")}</span>
@@ -61,7 +70,10 @@ export function Sidebar() {
           <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
         </button>
 
-        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+        <button 
+          onClick={() => alert("Public Links")}
+          className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground"
+        >
           <div className="flex items-center gap-3">
             <LinkIcon className="w-4 h-4 opacity-70" />
             <span>{t("settings.links")}</span>
@@ -70,7 +82,10 @@ export function Sidebar() {
 
         <div className="h-px bg-white/5 my-1" />
 
-        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+        <button 
+          onClick={() => alert("Appearance settings")}
+          className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground"
+        >
           <div className="flex items-center gap-3">
             <SunMoon className="w-4 h-4 opacity-70" />
             <span>{t("settings.appearance")}</span>
@@ -78,28 +93,40 @@ export function Sidebar() {
           <ChevronRight className={cn("w-3 h-3 opacity-40", isArabic && "rotate-180")} />
         </button>
 
-        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+        <button 
+          onClick={() => alert("Subscriptions")}
+          className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground"
+        >
           <div className="flex items-center gap-3">
             <CreditCard className="w-4 h-4 opacity-70" />
             <span>{t("settings.subscriptions")}</span>
           </div>
         </button>
 
-        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+        <button 
+          onClick={() => window.open('https://notebooklm.google.com', '_blank')}
+          className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground"
+        >
           <div className="flex items-center gap-3">
             <ExternalLink className="w-4 h-4 opacity-70" />
             <span>{t("settings.notebooklm")}</span>
           </div>
         </button>
 
-        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+        <button 
+          onClick={() => alert("Send feedback")}
+          className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground"
+        >
           <div className="flex items-center gap-3">
             <MessageSquareQuote className="w-4 h-4 opacity-70" />
             <span>{t("settings.feedback")}</span>
           </div>
         </button>
 
-        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+        <button 
+          onClick={() => alert("Help Center")}
+          className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground"
+        >
           <div className="flex items-center gap-3">
             <HelpCircle className="w-4 h-4 opacity-70" />
             <span>{t("settings.help")}</span>
@@ -212,11 +239,6 @@ export function Sidebar() {
         >
           {isMobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
-        {!isMobileOpen && (
-          <span className="text-sm font-semibold text-foreground/80 bg-[#131314]/50 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/5">
-            joojle AI
-          </span>
-        )}
       </div>
 
       {/* Desktop Sidebar */}

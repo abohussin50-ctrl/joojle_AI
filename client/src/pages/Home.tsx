@@ -1,33 +1,88 @@
 import { useCreateChat } from "@/hooks/use-chat";
 import { Sidebar } from "@/components/Sidebar";
-import { Sparkles, ArrowRight, MessageSquareText, Zap, Shield } from "lucide-react";
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { Sparkles, ArrowRight, MessageSquareText, Zap, Shield, Mic, Image as ImageIcon, Languages, SendHorizontal } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
+import { cn } from "@/lib/utils";
 
 import { useLanguage } from "@/hooks/use-language";
 
 export function Home() {
-  const { t } = useLanguage();
+  const { t, isArabic, language, setLanguage } = useLanguage();
   const createChat = useCreateChat();
-  const [prompt, setPrompt] = useState("");
+  const [input, setInput] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
   const [, setLocation] = useLocation();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (prompt.trim()) {
-      createChat.mutate(prompt, {
-        onSuccess: (chat) => {
-          setLocation(`/chat/${chat.id}`, {
-            state: { message: prompt },
-          });
-        },
-      });
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
+    }
+  }, [input]);
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if ((!input.trim() && !imageUrl) || createChat.isPending) return;
+
+    createChat.mutate(input || (imageUrl ? t("suggestion.quantum") : t("sidebar.newChat")), {
+      onSuccess: (chat) => {
+        setLocation(`/chat/${chat.id}`, {
+          state: { message: input, imageUrl },
+        });
+      },
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const toggleMic = () => {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      alert("Browser does not support speech recognition");
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = isArabic ? "ar-SA" : "en-US";
+    
+    recognition.onstart = () => setIsRecording(true);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+    };
+    recognition.onerror = () => setIsRecording(false);
+    recognition.onend = () => setIsRecording(false);
+
+    if (isRecording) {
+      recognition.stop();
+    } else {
+      recognition.start();
     }
   };
 
   const handleSuggestionClick = (text: string) => {
-    setPrompt(text);
     createChat.mutate(text, {
       onSuccess: (chat) => {
         setLocation(`/chat/${chat.id}`, {
@@ -79,28 +134,132 @@ export function Home() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.4 }}
-            className="w-full max-w-2xl"
+            className="w-full max-w-2xl relative"
           >
-            <form onSubmit={handleSubmit} className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-accent rounded-2xl blur opacity-30 group-hover:opacity-75 transition duration-500"></div>
+            {/* Image Preview */}
+            <AnimatePresence>
+              {imageUrl && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute bottom-full mb-4 left-0 z-20"
+                >
+                  <div className="relative group/img">
+                    <img src={imageUrl} alt="Upload preview" className="h-20 w-20 object-cover rounded-xl border-2 border-primary/50" />
+                    <button 
+                      onClick={() => setImageUrl(null)}
+                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 shadow-lg"
+                    >
+                      <SendHorizontal className="w-3 h-3 rotate-45" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-              <input
-                type="text"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+            <div className="relative bg-[#1e1f20] rounded-3xl border border-white/10 shadow-2xl flex flex-col md:flex-row items-stretch md:items-end overflow-hidden focus-within:ring-1 focus-within:ring-primary/40 transition-all">
+              <div className="flex md:hidden items-center justify-between px-4 pt-3 pb-1 border-b border-white/5">
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setLanguage(language === "en" ? "ar" : "en")}
+                    className={cn(
+                      "p-2.5 transition-colors rounded-xl",
+                      isArabic ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary hover:bg-white/5"
+                    )}
+                    title={t("input.language")}
+                  >
+                    <Languages className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2.5 text-muted-foreground hover:text-primary transition-colors rounded-xl hover:bg-white/5"
+                    title={t("input.image")}
+                  >
+                    <ImageIcon className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={toggleMic}
+                    className={cn(
+                      "p-2.5 transition-colors rounded-xl",
+                      isRecording ? "text-destructive bg-destructive/10 animate-pulse" : "text-muted-foreground hover:text-primary hover:bg-white/5"
+                    )}
+                    title={t("input.mic")}
+                  >
+                    <Mic className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="hidden md:flex pb-3 pl-3 gap-1">
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleImageUpload} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-white/5"
+                  title={t("input.image")}
+                >
+                  <ImageIcon className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={toggleMic}
+                  className={cn(
+                    "p-2 transition-colors rounded-lg hover:bg-white/5",
+                    isRecording ? "text-destructive animate-pulse" : "text-muted-foreground hover:text-primary"
+                  )}
+                  title={t("input.mic")}
+                >
+                  <Mic className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setLanguage(language === "en" ? "ar" : "en")}
+                  className={cn(
+                    "p-2 transition-colors rounded-lg hover:bg-white/5",
+                    isArabic ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"
+                  )}
+                  title={t("input.language")}
+                >
+                  <Languages className="w-5 h-5" />
+                </button>
+              </div>
+
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder={t("input.placeholder")}
-                className="relative w-full bg-card/90 backdrop-blur-xl text-foreground placeholder:text-muted-foreground/50 border-0 rounded-2xl py-4 pl-6 pr-14 shadow-2xl focus:ring-0 text-lg"
+                rows={1}
+                className="w-full bg-transparent text-foreground placeholder:text-muted-foreground/50 border-0 py-4 px-4 resize-none max-h-60 focus:ring-0 text-base md:text-lg scrollbar-none"
                 disabled={createChat.isPending}
               />
-
-              <button
-                type="submit"
-                disabled={!prompt.trim() || createChat.isPending}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-primary/20 text-primary hover:bg-primary hover:text-white rounded-xl transition-all disabled:opacity-0 disabled:scale-90"
-              >
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </form>
+              
+              <div className="pb-3 pr-3 flex justify-end md:block">
+                <button
+                  onClick={() => handleSubmit()}
+                  disabled={(!input.trim() && !imageUrl) || createChat.isPending}
+                  className={cn(
+                    "p-2.5 rounded-2xl transition-all duration-300 flex items-center justify-center",
+                    (input.trim() || imageUrl)
+                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 scale-100" 
+                      : "bg-white/5 text-muted-foreground/30 cursor-not-allowed scale-90"
+                  )}
+                >
+                  {createChat.isPending ? (
+                    <Sparkles className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <SendHorizontal className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+            </div>
           </motion.div>
 
           <motion.div

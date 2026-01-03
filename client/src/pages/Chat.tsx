@@ -163,8 +163,10 @@ export default function Chat() {
 
       <main className="flex-1 ml-0 md:ml-72 flex flex-col h-full relative">
         {/* Chat Header (Mobile only basically, or sticky title) */}
-        <header className="absolute top-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-md border-b border-white/5 p-4 md:hidden">
-          <div className="pl-12 font-medium truncate">{data?.chat.title || "Chat"}</div>
+        <header className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-md border-b border-white/5 p-4 md:hidden flex items-center h-16">
+          <div className="w-full text-center font-semibold text-foreground/90 truncate px-12">
+            {data?.chat.title || "joojle AI"}
+          </div>
         </header>
 
         {/* Messages Area */}
@@ -210,8 +212,42 @@ export default function Chat() {
             {/* Glow effect */}
             <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 to-accent/50 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
             
-            <div className="relative bg-card rounded-2xl border border-white/10 shadow-2xl flex items-end overflow-hidden focus-within:ring-1 focus-within:ring-primary/50 transition-all">
-              <div className="pb-3 pl-3 flex gap-1">
+            <div className="relative bg-[#1e1f20] rounded-3xl border border-white/10 shadow-2xl flex flex-col md:flex-row items-stretch md:items-end overflow-hidden focus-within:ring-1 focus-within:ring-primary/40 transition-all">
+              <div className="flex md:hidden items-center justify-between px-4 pt-3 pb-1 border-b border-white/5">
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setLanguage(language === "en" ? "ar" : "en")}
+                    className={cn(
+                      "p-2.5 transition-colors rounded-xl",
+                      isArabic ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary hover:bg-white/5"
+                    )}
+                    title={t("input.language")}
+                  >
+                    <Languages className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2.5 text-muted-foreground hover:text-primary transition-colors rounded-xl hover:bg-white/5"
+                    title={t("input.image")}
+                  >
+                    <ImageIcon className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={toggleMic}
+                    className={cn(
+                      "p-2.5 transition-colors rounded-xl",
+                      isRecording ? "text-destructive bg-destructive/10 animate-pulse" : "text-muted-foreground hover:text-primary hover:bg-white/5"
+                    )}
+                    title={t("input.mic")}
+                  >
+                    <Mic className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="hidden md:flex pb-3 pl-3 gap-1">
                 <input 
                   type="file" 
                   ref={fileInputRef} 
@@ -255,19 +291,19 @@ export default function Chat() {
                 onKeyDown={handleKeyDown}
                 placeholder={t("input.placeholder")}
                 rows={1}
-                className="w-full bg-transparent text-foreground placeholder:text-muted-foreground/60 border-0 py-4 px-4 resize-none max-h-48 focus:ring-0 text-base md:text-lg scrollbar-thin"
+                className="w-full bg-transparent text-foreground placeholder:text-muted-foreground/50 border-0 py-4 px-4 resize-none max-h-60 focus:ring-0 text-base md:text-lg scrollbar-none"
                 disabled={sendMessage.isPending}
               />
               
-              <div className="pb-3 pr-3">
+              <div className="pb-3 pr-3 flex justify-end md:block">
                 <button
                   onClick={() => handleSubmit()}
                   disabled={(!input.trim() && !imageUrl) || sendMessage.isPending}
                   className={cn(
-                    "p-2 rounded-xl transition-all duration-200 flex items-center justify-center",
+                    "p-2.5 rounded-2xl transition-all duration-300 flex items-center justify-center",
                     (input.trim() || imageUrl)
-                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90" 
-                      : "bg-secondary text-muted-foreground cursor-not-allowed"
+                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 scale-100" 
+                      : "bg-white/5 text-muted-foreground/30 cursor-not-allowed scale-90"
                   )}
                 >
                   {sendMessage.isPending ? (

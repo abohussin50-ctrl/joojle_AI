@@ -185,7 +185,7 @@ export function Sidebar() {
       <div className="p-2 border-t border-white/5 space-y-1">
         <Popover>
           <PopoverTrigger asChild>
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 text-sm text-muted-foreground hover:text-foreground transition-all">
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-sm text-muted-foreground hover:text-foreground transition-all active:scale-[0.98]">
               <Settings className="w-4 h-4" />
               <span className="font-medium">{t("settings.title")}</span>
             </button>
@@ -205,13 +205,18 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile Toggle */}
-      <div className="md:hidden fixed top-4 left-4 z-50">
+      <div className="md:hidden fixed top-4 left-4 z-50 flex items-center gap-2">
         <button
           onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="p-2 bg-card border border-white/10 rounded-lg shadow-lg text-foreground"
+          className="p-2.5 bg-[#131314] border border-white/10 rounded-xl shadow-lg text-foreground active:scale-95 transition-transform"
         >
-          {isMobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {isMobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
+        {!isMobileOpen && (
+          <span className="text-sm font-semibold text-foreground/80 bg-[#131314]/50 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/5">
+            joojle AI
+          </span>
+        )}
       </div>
 
       {/* Desktop Sidebar */}

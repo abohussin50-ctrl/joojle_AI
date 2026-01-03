@@ -1,15 +1,16 @@
 import { Link, useLocation } from "wouter";
 import { useChats, useCreateChat, useDeleteChat } from "@/hooks/use-chat";
-import { Plus, MessageSquare, Trash2, Menu, X, Sparkles } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Menu, X, Sparkles, Settings, History, UserRound, Puzzle, Link as LinkIcon, SunMoon, CreditCard, ExternalLink, MessageSquareQuote, HelpCircle, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { useLanguage } from "@/hooks/use-language";
 
 export function Sidebar() {
-  const { t } = useLanguage();
+  const { t, isArabic } = useLanguage();
   const [location] = useLocation();
   const { data: chats, isLoading } = useChats();
   const createChat = useCreateChat();
@@ -34,8 +35,83 @@ export function Sidebar() {
     }
   };
 
+  const SettingsMenu = () => (
+    <div className="flex flex-col w-64 bg-[#1e1f20] border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+      <div className="flex flex-col py-2">
+        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+          <div className="flex items-center gap-3">
+            <History className="w-4 h-4 opacity-70" />
+            <span>{t("settings.activity")}</span>
+          </div>
+        </button>
+        
+        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+          <div className="flex items-center gap-3">
+            <UserRound className="w-4 h-4 opacity-70" />
+            <span>{t("settings.geminiInstructions")}</span>
+          </div>
+          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+        </button>
+
+        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+          <div className="flex items-center gap-3">
+            <Puzzle className="w-4 h-4 opacity-70" />
+            <span>{t("settings.extensions")}</span>
+          </div>
+          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+        </button>
+
+        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+          <div className="flex items-center gap-3">
+            <LinkIcon className="w-4 h-4 opacity-70" />
+            <span>{t("settings.links")}</span>
+          </div>
+        </button>
+
+        <div className="h-px bg-white/5 my-1" />
+
+        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+          <div className="flex items-center gap-3">
+            <SunMoon className="w-4 h-4 opacity-70" />
+            <span>{t("settings.appearance")}</span>
+          </div>
+          <ChevronRight className={cn("w-3 h-3 opacity-40", isArabic && "rotate-180")} />
+        </button>
+
+        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+          <div className="flex items-center gap-3">
+            <CreditCard className="w-4 h-4 opacity-70" />
+            <span>{t("settings.subscriptions")}</span>
+          </div>
+        </button>
+
+        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+          <div className="flex items-center gap-3">
+            <ExternalLink className="w-4 h-4 opacity-70" />
+            <span>{t("settings.notebooklm")}</span>
+          </div>
+        </button>
+
+        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+          <div className="flex items-center gap-3">
+            <MessageSquareQuote className="w-4 h-4 opacity-70" />
+            <span>{t("settings.feedback")}</span>
+          </div>
+        </button>
+
+        <button className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground">
+          <div className="flex items-center gap-3">
+            <HelpCircle className="w-4 h-4 opacity-70" />
+            <span>{t("settings.help")}</span>
+          </div>
+          <ChevronRight className={cn("w-3 h-3 opacity-40", isArabic && "rotate-180")} />
+        </button>
+      </div>
+    </div>
+  );
+
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-secondary/30 backdrop-blur-xl border-r border-white/5">
+    <div className="flex flex-col h-full bg-[#131314] backdrop-blur-xl border-r border-white/5">
       {/* Header */}
       <div className="p-4">
         <button
@@ -72,7 +148,7 @@ export function Sidebar() {
                 className={cn(
                   "group relative flex items-center gap-3 px-3 py-3 rounded-lg cursor-pointer transition-all duration-200",
                   currentChatId === chat.id
-                    ? "bg-white/10 text-white shadow-lg shadow-black/5"
+                    ? "bg-[#282a2c] text-white shadow-lg"
                     : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                 )}
                 onClick={() => setIsMobileOpen(false)}
@@ -106,8 +182,22 @@ export function Sidebar() {
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-white/5 text-xs text-muted-foreground text-center">
-        <p>{t("sidebar.footer")}</p>
+      <div className="p-2 border-t border-white/5 space-y-1">
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 text-sm text-muted-foreground hover:text-foreground transition-all">
+              <Settings className="w-4 h-4" />
+              <span className="font-medium">{t("settings.title")}</span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="right" align="end" className="p-0 border-none bg-transparent shadow-none" sideOffset={10}>
+            <SettingsMenu />
+          </PopoverContent>
+        </Popover>
+
+        <div className="px-4 py-2 text-[10px] text-muted-foreground/40 text-center uppercase tracking-widest">
+          {t("sidebar.footer")}
+        </div>
       </div>
     </div>
   );

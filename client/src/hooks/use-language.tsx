@@ -40,7 +40,17 @@ const translations: Record<Language, Record<string, string>> = {
     "common.you": "You",
     "common.ai": "Joojle AI",
     "common.copy": "Copy",
-    "common.copied": "Copied"
+    "common.copied": "Copied",
+    "settings.title": "Settings",
+    "settings.activity": "Activity",
+    "settings.geminiInstructions": "Gemini Instructions",
+    "settings.extensions": "Extensions",
+    "settings.links": "Public Links",
+    "settings.appearance": "Appearance",
+    "settings.subscriptions": "Subscriptions",
+    "settings.notebooklm": "NotebookLM",
+    "settings.feedback": "Send feedback",
+    "settings.help": "Help"
   },
   ar: {
     "app.name": "joojle AI",
@@ -70,7 +80,17 @@ const translations: Record<Language, Record<string, string>> = {
     "common.you": "أنت",
     "common.ai": "Joojle AI",
     "common.copy": "نسخ",
-    "common.copied": "تم النسخ"
+    "common.copied": "تم النسخ",
+    "settings.title": "الإعدادات",
+    "settings.activity": "النشاط",
+    "settings.geminiInstructions": "تعليمات لـ Gemini",
+    "settings.extensions": "التطبيقات المرتبطة",
+    "settings.links": "الروابط المتاحة للجميع",
+    "settings.appearance": "المظهر",
+    "settings.subscriptions": "عرض الاشتراكات",
+    "settings.notebooklm": "NotebookLM",
+    "settings.feedback": "إرسال ملاحظات",
+    "settings.help": "مساعدة"
   }
 };
 

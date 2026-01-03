@@ -35,6 +35,13 @@ export function Sidebar() {
     }
   };
 
+  const toggleTheme = () => {
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    // Force a re-render by updating state if needed, but since it's on documentElement, 
+    // tailwind's dark: classes will respond immediately.
+  };
+
   const SettingsMenu = () => (
     <div className="flex flex-col w-64 bg-[#1e1f20] border border-white/10 rounded-xl overflow-hidden shadow-2xl">
       <div className="flex flex-col py-2">
@@ -83,16 +90,7 @@ export function Sidebar() {
         <div className="h-px bg-white/5 my-1" />
 
         <button 
-          onClick={() => {
-            const isDark = document.documentElement.classList.contains('dark');
-            if (isDark) {
-              document.documentElement.classList.remove('dark');
-              localStorage.setItem('theme', 'light');
-            } else {
-              document.documentElement.classList.add('dark');
-              localStorage.setItem('theme', 'dark');
-            }
-          }}
+          onClick={toggleTheme}
           className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground"
         >
           <div className="flex items-center gap-3">

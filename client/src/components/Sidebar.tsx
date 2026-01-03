@@ -83,7 +83,16 @@ export function Sidebar() {
         <div className="h-px bg-white/5 my-1" />
 
         <button 
-          onClick={() => alert("Appearance settings")}
+          onClick={() => {
+            const isDark = document.documentElement.classList.contains('dark');
+            if (isDark) {
+              document.documentElement.classList.remove('dark');
+              localStorage.setItem('theme', 'light');
+            } else {
+              document.documentElement.classList.add('dark');
+              localStorage.setItem('theme', 'dark');
+            }
+          }}
           className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground"
         >
           <div className="flex items-center gap-3">
@@ -114,7 +123,10 @@ export function Sidebar() {
         </button>
 
         <button 
-          onClick={() => alert("Send feedback")}
+          onClick={() => {
+            const feedbackUrl = "https://support.google.com/gemini/answer/13275745";
+            window.open(feedbackUrl, '_blank');
+          }}
           className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground"
         >
           <div className="flex items-center gap-3">
@@ -124,7 +136,12 @@ export function Sidebar() {
         </button>
 
         <button 
-          onClick={() => alert("Help Center")}
+          onClick={() => {
+            const helpUrl = isArabic 
+              ? "https://support.google.com/gemini/?hl=ar" 
+              : "https://support.google.com/gemini/";
+            window.open(helpUrl, '_blank');
+          }}
           className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground"
         >
           <div className="flex items-center gap-3">

@@ -5,7 +5,10 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 
+import { useLanguage } from "@/hooks/use-language";
+
 export function Home() {
+  const { t } = useLanguage();
   const createChat = useCreateChat();
   const [prompt, setPrompt] = useState("");
   const [, setLocation] = useLocation();
@@ -35,10 +38,10 @@ export function Home() {
   };
 
   const suggestions = [
-    "Explain quantum computing in simple terms",
-    "Write a Python script to scrape a website",
-    "Give me 5 creative date ideas for a rainy day",
-    "Draft a professional email to my boss"
+    t("suggestion.quantum"),
+    t("suggestion.python"),
+    t("suggestion.date"),
+    t("suggestion.email")
   ];
 
   return (
@@ -60,15 +63,15 @@ export function Home() {
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-primary-foreground mb-4">
               <Sparkles className="w-3 h-3 text-primary" />
-              <span>Powered by Advanced AI</span>
+              <span>{t("app.powered")}</span>
             </div>
 
             <h1 className="text-5xl md:text-7xl font-display font-bold tracking-tight">
-              <span className="text-gradient">joojle AI</span>
+              <span className="text-gradient">{t("app.name")}</span>
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto leading-relaxed">
-              Your intelligent creative partner. Ask anything, get answers, and spark new ideas instantly.
+              {t("app.tagline")}
             </p>
           </motion.div>
 
@@ -85,7 +88,7 @@ export function Home() {
                 type="text"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Message joojle AI..."
+                placeholder={t("input.placeholder")}
                 className="relative w-full bg-card/90 backdrop-blur-xl text-foreground placeholder:text-muted-foreground/50 border-0 rounded-2xl py-4 pl-6 pr-14 shadow-2xl focus:ring-0 text-lg"
                 disabled={createChat.isPending}
               />
@@ -126,13 +129,13 @@ export function Home() {
             className="mt-16 flex gap-8 text-xs text-muted-foreground/60 font-medium uppercase tracking-widest"
           >
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4" /> Fast
+              <Zap className="w-4 h-4" /> {t("features.fast")}
             </div>
             <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4" /> Secure
+              <Shield className="w-4 h-4" /> {t("features.secure")}
             </div>
             <div className="flex items-center gap-2">
-              <MessageSquareText className="w-4 h-4" /> Smart
+              <MessageSquareText className="w-4 h-4" /> {t("features.smart")}
             </div>
           </motion.div>
         </div>

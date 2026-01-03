@@ -7,7 +7,10 @@ import { SendHorizontal, Sparkles, AlertCircle, Mic, Image as ImageIcon, Languag
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { useLanguage } from "@/hooks/use-language";
+
 export default function Chat() {
+  const { t, isArabic, language, setLanguage } = useLanguage();
   const { id } = useParams();
   const [, setLocation] = useLocation();
   const chatId = id ? parseInt(id) : null;
@@ -16,7 +19,6 @@ export default function Chat() {
   
   const [input, setInput] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [isArabic, setIsArabic] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -38,12 +40,6 @@ export default function Chat() {
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if ((!input.trim() && !imageUrl) || !chatId || sendMessage.isPending) return;
-
-    let finalContent = input;
-    if (isArabic && !input.trim()) {
-      // Handle empty input with image in Arabic mode if needed, 
-      // but usually we just send the image with optional text
-    }
 
     sendMessage.mutate({ 
       chatId, 
@@ -92,7 +88,7 @@ export default function Chat() {
 
   const toggleMic = () => {
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      alert("المتصفح لا يدعم البحث الصوتي");
+      alert("Browser does not support speech recognition");
       return;
     }
 
@@ -148,13 +144,13 @@ export default function Chat() {
           <div className="bg-destructive/10 p-4 rounded-full mb-4">
             <AlertCircle className="w-12 h-12 text-destructive" />
           </div>
-          <h2 className="text-2xl font-bold mb-2">Chat not found</h2>
-          <p className="text-muted-foreground mb-6">This conversation may have been deleted or doesn't exist.</p>
+          <h2 className="text-2xl font-bold mb-2">{t("chat.notFound")}</h2>
+          <p className="text-muted-foreground mb-6">{t("chat.notFoundDesc")}</p>
           <button 
             onClick={() => setLocation("/")}
             className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition"
           >
-            Return Home
+            {t("chat.returnHome")}
           </button>
         </div>
       </div>
@@ -162,10 +158,7 @@ export default function Chat() {
   }
 
   return (
-    <div className={cn(
-      "flex h-screen bg-background text-foreground overflow-hidden font-body",
-      isArabic && "rtl"
-    )} dir={isArabic ? "rtl" : "ltr"}>
+    <div className="flex h-screen bg-background text-foreground overflow-hidden font-body">
       <Sidebar />
 
       <main className="flex-1 ml-0 md:ml-72 flex flex-col h-full relative">
@@ -229,7 +222,7 @@ export default function Chat() {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="p-2 text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-white/5"
-                  title="Upload image"
+                  title={t("input.image")}
                 >
                   <ImageIcon className="w-5 h-5" />
                 </button>
@@ -239,17 +232,17 @@ export default function Chat() {
                     "p-2 transition-colors rounded-lg hover:bg-white/5",
                     isRecording ? "text-destructive animate-pulse" : "text-muted-foreground hover:text-primary"
                   )}
-                  title="Voice input"
+                  title={t("input.mic")}
                 >
                   <Mic className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={() => setIsArabic(!isArabic)}
+                  onClick={() => setLanguage(language === "en" ? "ar" : "en")}
                   className={cn(
                     "p-2 transition-colors rounded-lg hover:bg-white/5",
                     isArabic ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"
                   )}
-                  title="Toggle Arabic"
+                  title={t("input.language")}
                 >
                   <Languages className="w-5 h-5" />
                 </button>
@@ -260,7 +253,7 @@ export default function Chat() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={isArabic ? "اسأل أي شيء..." : "Ask anything..."}
+                placeholder={t("input.placeholder")}
                 rows={1}
                 className="w-full bg-transparent text-foreground placeholder:text-muted-foreground/60 border-0 py-4 px-4 resize-none max-h-48 focus:ring-0 text-base md:text-lg scrollbar-thin"
                 disabled={sendMessage.isPending}
@@ -288,7 +281,7 @@ export default function Chat() {
 
             <div className="text-center mt-2">
               <p className="text-[10px] text-muted-foreground/50">
-                {isArabic ? "يمكن أن يخطئ Joojle AI. تحقق من المعلومات المهمة." : "Joojle AI can make mistakes. Verify important information."}
+                {t("app.warning")}
               </p>
             </div>
           </div>

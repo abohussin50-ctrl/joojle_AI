@@ -10,7 +10,10 @@ interface MessageProps {
   message: MessageType;
 }
 
+import { useLanguage } from "@/hooks/use-language";
+
 export function Message({ message }: MessageProps) {
+  const { t } = useLanguage();
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
 
@@ -46,7 +49,7 @@ export function Message({ message }: MessageProps) {
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            {isUser ? "You" : "Joojle AI"}
+            {isUser ? t("common.you") : t("common.ai")}
           </span>
           <span className="text-[10px] text-muted-foreground/50">
             {format(new Date(message.createdAt), "h:mm a")}
@@ -81,7 +84,7 @@ export function Message({ message }: MessageProps) {
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors py-1 px-2 rounded hover:bg-white/5"
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              {copied ? "Copied" : "Copy"}
+              {copied ? t("common.copied") : t("common.copy")}
             </button>
           </div>
         )}

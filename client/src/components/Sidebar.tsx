@@ -6,7 +6,10 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { useLanguage } from "@/hooks/use-language";
+
 export function Sidebar() {
+  const { t } = useLanguage();
   const [location] = useLocation();
   const { data: chats, isLoading } = useChats();
   const createChat = useCreateChat();
@@ -19,14 +22,14 @@ export function Sidebar() {
     : null;
 
   const handleCreateNew = () => {
-    createChat.mutate("New Conversation");
+    createChat.mutate(t("sidebar.newChat"));
     setIsMobileOpen(false);
   };
 
   const handleDelete = (e: React.MouseEvent, id: number) => {
     e.preventDefault();
     e.stopPropagation();
-    if (confirm("Delete this chat?")) {
+    if (confirm(t("sidebar.delete") + "?")) {
       deleteChat.mutate(id);
     }
   };
@@ -41,14 +44,14 @@ export function Sidebar() {
           className="w-full flex items-center justify-center gap-2 bg-primary/20 hover:bg-primary/30 text-primary-foreground py-3 px-4 rounded-xl border border-primary/20 transition-all duration-200 group"
         >
           <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-          <span className="font-semibold">{createChat.isPending ? "Creating..." : "New Chat"}</span>
+          <span className="font-semibold">{createChat.isPending ? t("sidebar.creating") : t("sidebar.newChat")}</span>
         </button>
       </div>
 
       {/* Chat List */}
       <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-1 scrollbar-thin">
         <div className="text-xs font-medium text-muted-foreground px-3 py-2 uppercase tracking-wider">
-          Recent
+          {t("sidebar.recent")}
         </div>
         
         {isLoading ? (
@@ -60,7 +63,7 @@ export function Sidebar() {
         ) : chats?.length === 0 ? (
           <div className="px-4 py-8 text-center text-muted-foreground text-sm">
             <Sparkles className="w-8 h-8 mx-auto mb-2 opacity-20" />
-            No chats yet. Start a new conversation!
+            {t("sidebar.empty")}
           </div>
         ) : (
           chats?.map((chat) => (
@@ -92,7 +95,7 @@ export function Sidebar() {
                     "absolute right-2 p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100",
                     currentChatId === chat.id && "opacity-0 group-hover:opacity-100" // Keep clean when active unless hovering
                   )}
-                  title="Delete chat"
+                  title={t("sidebar.delete")}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -104,7 +107,7 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="p-4 border-t border-white/5 text-xs text-muted-foreground text-center">
-        <p>joojle AI &copy; 2025</p>
+        <p>{t("sidebar.footer")}</p>
       </div>
     </div>
   );

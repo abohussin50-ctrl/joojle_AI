@@ -16,6 +16,7 @@ export function Sidebar() {
   const { data: chats, isLoading } = useChats();
   const createChat = useCreateChat();
   const deleteChat = useDeleteChat();
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   // Extract ID from path: /chat/123 -> 123
@@ -185,46 +186,95 @@ export function Sidebar() {
   );
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-[#131314] backdrop-blur-xl border-r border-white/5">
-      {/* Header */}
-      <div className="p-4">
+    <div className={cn(
+      "flex flex-col h-full bg-[#131314] backdrop-blur-xl border-r border-white/5 transition-all duration-300",
+      isCollapsed ? "w-20" : "w-72"
+    )}>
+      {/* Header with Logo and Collapse Button */}
+      <div className={cn(
+        "flex items-center p-4 mb-2",
+        isCollapsed ? "justify-center" : "justify-between"
+      )}>
+        <div className="flex items-center gap-2 overflow-hidden">
+          <div className="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          {!isCollapsed && (
+            <motion.span 
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: "auto" }}
+              exit={{ opacity: 0, width: 0 }}
+              className="text-xl font-bold bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent truncate"
+            >
+              joojle
+            </motion.span>
+          )}
+        </div>
+        
+        {!isCollapsed && (
+          <button
+            onClick={() => setIsCollapsed(true)}
+            className="p-2 hover:bg-white/5 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+            title="Minimize"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+        
+        {isCollapsed && (
+          <button
+            onClick={() => setIsCollapsed(false)}
+            className="absolute top-4 right-2 p-1.5 hover:bg-white/5 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+            title="Expand"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* New Chat Button */}
+      <div className="px-4 mb-4">
         <button
           onClick={handleCreateNew}
           disabled={createChat.isPending}
           className={cn(
-            "w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border transition-all duration-200 group",
+            "flex items-center justify-center gap-2 py-3 rounded-xl border transition-all duration-200 group overflow-hidden",
             "bg-primary/20 hover:bg-primary/30 text-primary-foreground border-primary/20",
+            isCollapsed ? "w-12 px-0" : "w-full px-4",
             createChat.isPending && "opacity-50 cursor-not-allowed"
           )}
         >
           <Plus className={cn("w-5 h-5 transition-transform duration-300", !createChat.isPending && "group-hover:rotate-90")} />
-          <span className="font-semibold">{createChat.isPending ? t("sidebar.creating") : t("sidebar.newChat")}</span>
+          {!isCollapsed && <span className="font-semibold whitespace-nowrap">{createChat.isPending ? t("sidebar.creating") : t("sidebar.newChat")}</span>}
         </button>
       </div>
 
       {/* Chat List */}
       <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-1 scrollbar-thin">
-        <div className="text-xs font-medium text-muted-foreground px-3 py-2 uppercase tracking-wider">
-          {t("sidebar.recent")}
-        </div>
+        {!isCollapsed && (
+          <div className="text-xs font-medium text-muted-foreground px-3 py-2 uppercase tracking-wider">
+            {t("sidebar.recent")}
+          </div>
+        )}
 
         {isLoading ? (
           <div className="px-3 space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-10 bg-white/5 rounded-lg animate-pulse" />
+              <div key={i} className={cn("bg-white/5 rounded-lg animate-pulse", isCollapsed ? "h-10 w-10 mx-auto" : "h-10 w-full")} />
             ))}
           </div>
         ) : !chats || chats.length === 0 ? (
           <div className="px-4 py-8 text-center text-muted-foreground text-sm">
             <Sparkles className="w-8 h-8 mx-auto mb-2 opacity-20" />
-            {t("sidebar.empty")}
+            {!isCollapsed && t("sidebar.empty")}
           </div>
         ) : (
           chats.map((chat) => (
             <Link key={chat.id} href={`/chat/${chat.id}`}>
               <div
                 className={cn(
-                  "group relative flex items-center gap-3 px-3 py-3 rounded-lg cursor-pointer transition-all duration-200",
+                  "group relative flex items-center rounded-lg cursor-pointer transition-all duration-200",
+                  isCollapsed ? "justify-center p-3" : "gap-3 px-3 py-3",
                   currentChatId === chat.id
                     ? "bg-[#282a2c] text-white shadow-lg"
                     : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
@@ -233,25 +283,29 @@ export function Sidebar() {
               >
                 <MessageSquare className="w-4 h-4 shrink-0 opacity-70" />
 
-                <div className="flex-1 min-w-0">
-                  <div className="truncate text-sm font-medium">
-                    {chat.title}
-                  </div>
-                  <div className="text-[10px] opacity-50 truncate">
-                    {format(new Date(chat.createdAt), "MMM d, h:mm a")}
-                  </div>
-                </div>
+                {!isCollapsed && (
+                  <>
+                    <div className="flex-1 min-w-0">
+                      <div className="truncate text-sm font-medium">
+                        {chat.title}
+                      </div>
+                      <div className="text-[10px] opacity-50 truncate">
+                        {format(new Date(chat.createdAt), "MMM d, h:mm a")}
+                      </div>
+                    </div>
 
-                <button
-                  onClick={(e) => handleDelete(e, chat.id)}
-                  className={cn(
-                    "absolute right-2 p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100",
-                    currentChatId === chat.id && "opacity-0 group-hover:opacity-100"
-                  )}
-                  title={t("sidebar.delete")}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                    <button
+                      onClick={(e) => handleDelete(e, chat.id)}
+                      className={cn(
+                        "p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100",
+                        currentChatId === chat.id && "opacity-0 group-hover:opacity-100"
+                      )}
+                      title={t("sidebar.delete")}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                )}
               </div>
             </Link>
           ))
@@ -264,7 +318,10 @@ export function Sidebar() {
           {isLoggedIn ? (
             <Popover>
               <PopoverTrigger asChild>
-                <button className="group w-full flex items-center gap-3 p-2 rounded-2xl hover:bg-white/[0.05] transition-all duration-200">
+                <button className={cn(
+                  "group flex items-center rounded-2xl hover:bg-white/[0.05] transition-all duration-200",
+                  isCollapsed ? "p-1 justify-center" : "w-full gap-3 p-2"
+                )}>
                   <div className="relative">
                     <img 
                       src={user?.user_metadata?.avatar_url || `https://avatar.iran.liara.run/public/${user?.id}`} 
@@ -273,15 +330,17 @@ export function Sidebar() {
                     />
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-[#131314] rounded-full" />
                   </div>
-                  <div className="flex-1 text-left overflow-hidden">
-                    <p className="text-sm font-semibold text-white/90 truncate">
-                      {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
-                    </p>
-                    <p className="text-[10px] text-white/40 truncate">Account Active</p>
-                  </div>
+                  {!isCollapsed && (
+                    <div className="flex-1 text-left overflow-hidden">
+                      <p className="text-sm font-semibold text-white/90 truncate">
+                        {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
+                      </p>
+                      <p className="text-[10px] text-white/40 truncate">Account Active</p>
+                    </div>
+                  )}
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="top" align="center" className="w-72 p-2 bg-[#1e1f20] border-white/10 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
+              <PopoverContent side={isCollapsed ? "right" : "top"} align="center" className="w-72 p-2 bg-[#1e1f20] border-white/10 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
                   <div className="px-4 py-3 border-b border-white/5 mb-1">
                     <p className="text-xs text-white/40 mb-1">{t("auth.signedInAs")}</p>
                     <p className="text-sm font-medium text-white truncate">{user?.email}</p>
@@ -299,34 +358,44 @@ export function Sidebar() {
             <button
               onClick={() => signInWithGoogle()}
               disabled={isAuthLoading}
-              className="group relative w-full flex items-center justify-center py-3.5 rounded-2xl transition-all duration-300 active:scale-[0.97] overflow-hidden"
+              className={cn(
+                "group relative flex items-center justify-center rounded-2xl transition-all duration-300 active:scale-[0.97] overflow-hidden",
+                isCollapsed ? "h-12 w-12" : "w-full py-3.5"
+              )}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-[#4285F4] via-[#9b72cb] to-[#d96570] opacity-90 group-hover:opacity-100 transition-opacity" />
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]" />
               <div className="relative flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-white" />
-                <span className="text-sm font-bold text-white tracking-wide">
-                  {isAuthLoading ? t("auth.loading") : t("auth.getStarted")}
-                </span>
+                {!isCollapsed && (
+                  <span className="text-sm font-bold text-white tracking-wide">
+                    {isAuthLoading ? t("auth.loading") : t("auth.getStarted")}
+                  </span>
+                )}
               </div>
             </button>
           )}
         </div>
         <Popover>
           <PopoverTrigger asChild>
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-sm text-muted-foreground hover:text-foreground transition-all active:scale-[0.98]">
+            <button className={cn(
+              "flex items-center rounded-xl hover:bg-white/5 text-sm text-muted-foreground hover:text-foreground transition-all active:scale-[0.98]",
+              isCollapsed ? "p-3 justify-center" : "w-full gap-3 px-4 py-3"
+            )}>
               <Settings className="w-4 h-4" />
-              <span className="font-medium">{t("settings.title")}</span>
+              {!isCollapsed && <span className="font-medium">{t("settings.title")}</span>}
             </button>
           </PopoverTrigger>
-          <PopoverContent side="top" align="center" className="p-0 border-none bg-transparent shadow-none" sideOffset={10}>
+          <PopoverContent side={isCollapsed ? "right" : "top"} align="center" className="p-0 border-none bg-transparent shadow-none" sideOffset={10}>
             <SettingsMenu />
           </PopoverContent>
         </Popover>
 
-        <div className="px-4 py-2 text-[10px] text-muted-foreground/40 text-center uppercase tracking-widest">
-          {t("sidebar.footer")}
-        </div>
+        {!isCollapsed && (
+          <div className="px-4 py-2 text-[10px] text-muted-foreground/40 text-center uppercase tracking-widest">
+            {t("sidebar.footer")}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -342,7 +411,10 @@ export function Sidebar() {
         </button>
       </div>
 
-      <div className="hidden md:block w-72 h-screen fixed left-0 top-0 bottom-0 z-30">
+      <div className={cn(
+        "hidden md:block h-screen fixed left-0 top-0 bottom-0 z-30 transition-all duration-300",
+        isCollapsed ? "w-20" : "w-72"
+      )}>
         <SidebarContent />
       </div>
 

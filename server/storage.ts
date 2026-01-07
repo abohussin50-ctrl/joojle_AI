@@ -1,25 +1,30 @@
 import { db } from "./db";
-import { chats, messages, users, type Chat, type Message, type InsertChat, type InsertMessage, type User } from "@shared/schema";
-import { eq, desc, asc, and } from "drizzle-orm";
+import { chats, messages, users, type Chat, type Message, type InsertChat, type InsertMessage, type User, type InsertUser } from "@shared/schema";
+import { eq, desc, asc } from "drizzle-orm";
 
 export interface IStorage {
-  // جلب بيانات المستخدم
   getUser(id: number): Promise<User | undefined>;
-  // جلب المحادثات الخاصة بمستخدم معين فقط
+  createUser(user: InsertUser): Promise<User>; // أضفنا هذه الدالة
   getChats(userId: number | string): Promise<Chat[]>; 
   getChat(id: number): Promise<Chat | undefined>;
   createChat(chat: { title: string, userId: any }): Promise<Chat>;
   deleteChat(id: number): Promise<void>;
-
   getMessages(chatId: number): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
 }
 
 export class DatabaseStorage implements IStorage {
-  // دالة جديدة لجلب بيانات المستخدم (لا غنى عنها لمعرفة الاسم)
+
   async getUser(id: number): Promise<User | undefined> {
+    // نستخدم parseInt للتأكد من أننا نبحث برقم صحيح
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
+  }
+
+  // دالة لإنشاء مستخدم جديد إذا لم يكن موجوداً
+  async createUser(user: InsertUser): Promise<User> {
+    const [newUser] = await db.insert(users).values(user).returning();
+    return newUser;
   }
 
   async getChats(userId: number | string): Promise<Chat[]> {

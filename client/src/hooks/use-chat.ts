@@ -3,6 +3,19 @@ import { api, buildUrl } from "@shared/routes";
 import { useLocation } from "wouter";
 import { useAuth } from "./use-auth";
 
+/**
+ * دالة استخراج الاسم من بيانات Supabase
+ */
+const getUserDisplayName = (user: any) => {
+  if (!user) return "User";
+  return (
+    user.user_metadata?.full_name || 
+    user.user_metadata?.name || 
+    user.email?.split('@')[0] || 
+    "User"
+  );
+};
+
 // 1. جلب قائمة المحادثات
 export function useChats() {
   const { user } = useAuth();
@@ -11,7 +24,10 @@ export function useChats() {
     queryKey: [api.chats.list.path, user?.id],
     queryFn: async () => {
       const res = await fetch(api.chats.list.path, { 
-        headers: { "x-user-id": user?.id || "" },
+        headers: { 
+          "x-user-id": user?.id || "",
+          "x-user-name": encodeURIComponent(getUserDisplayName(user))
+        },
         credentials: "include" 
       });
       if (!res.ok) throw new Error("Failed to fetch chats");
@@ -30,22 +46,18 @@ export function useCreateChat() {
   return useMutation({
     mutationFn: async (title: string) => {
       const payload = { title: title.trim() || "New Chat" };
-      const validated = api.chats.create.input.parse(payload);
-
       const res = await fetch(api.chats.create.path, {
         method: api.chats.create.method,
         headers: { 
           "Content-Type": "application/json",
-          "x-user-id": user?.id || "" 
+          "x-user-id": user?.id || "",
+          "x-user-name": encodeURIComponent(getUserDisplayName(user))
         },
-        body: JSON.stringify(validated),
+        body: JSON.stringify(payload),
         credentials: "include",
       });
 
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error.message || "Failed to create chat");
-      }
+      if (!res.ok) throw new Error("Failed to create chat");
       return api.chats.create.responses[201].parse(await res.json());
     },
     onSuccess: (data) => {
@@ -55,10 +67,9 @@ export function useCreateChat() {
   });
 }
 
-// 3. حذف محادثة (هذا هو الجزء الذي كان ناقصاً وتسبب بالخطأ)
+// 3. دالة الحذف (المفقودة التي سببت الخطأ في الصورة)
 export function useDeleteChat() {
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
   const { user } = useAuth();
 
   return useMutation({
@@ -66,7 +77,10 @@ export function useDeleteChat() {
       const url = buildUrl(api.chats.delete.path, { id });
       const res = await fetch(url, { 
         method: api.chats.delete.method,
-        headers: { "x-user-id": user?.id || "" },
+        headers: { 
+          "x-user-id": user?.id || "",
+          "x-user-name": encodeURIComponent(getUserDisplayName(user))
+        },
         credentials: "include" 
       });
 
@@ -78,16 +92,19 @@ export function useDeleteChat() {
   });
 }
 
-// 4. جلب محادثة واحدة ورسائلها
+// 4. جلب محادثة واحدة
 export function useChat(id: number | null) {
   const { user } = useAuth();
   return useQuery({
-    queryKey: [api.chats.get.path, id, user?.id],
+    queryKey: [buildUrl(api.chats.get.path, { id: id || 0 }), user?.id],
     queryFn: async () => {
       if (!id || !user) return null;
       const url = buildUrl(api.chats.get.path, { id });
       const res = await fetch(url, { 
-        headers: { "x-user-id": user.id },
+        headers: { 
+          "x-user-id": user.id,
+          "x-user-name": encodeURIComponent(getUserDisplayName(user))
+        },
         credentials: "include" 
       });
       if (res.status === 404) return null;
@@ -105,12 +122,15 @@ export function useSendMessage() {
 
   return useMutation({
     mutationFn: async ({ chatId, content, imageUrl }: { chatId: number; content: string; imageUrl?: string }) => {
+      // بناء الرابط بشكل صحيح باستخدام buildUrl
       const url = buildUrl(api.chats.addMessage.path, { id: chatId });
+
       const res = await fetch(url, {
         method: api.chats.addMessage.method,
         headers: { 
           "Content-Type": "application/json",
-          "x-user-id": user?.id || "" 
+          "x-user-id": user?.id || "",
+          "x-user-name": encodeURIComponent(getUserDisplayName(user)) 
         },
         body: JSON.stringify({ content, imageUrl }),
         credentials: "include",
@@ -120,8 +140,7 @@ export function useSendMessage() {
       return api.chats.addMessage.responses[201].parse(await res.json());
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [api.chats.get.path, variables.chatId] });
-      queryClient.invalidateQueries({ queryKey: [api.chats.list.path] });
+      queryClient.invalidateQueries({ queryKey: [buildUrl(api.chats.get.path, { id: variables.chatId })] });
     },
   });
 }

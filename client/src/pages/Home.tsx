@@ -1,14 +1,15 @@
 import { useCreateChat } from "@/hooks/use-chat";
 import { Sidebar } from "@/components/Sidebar";
-import { Sparkles, ArrowRight, MessageSquareText, Zap, Shield, Mic, Image as ImageIcon, Languages, SendHorizontal } from "lucide-react";
+import { Sparkles, MessageSquareText, Zap, Shield, Mic, Image as ImageIcon, Languages, SendHorizontal, X } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-
+import { useAuth } from "@/hooks/use-auth"; // استيراد نظام المصادقة
 import { useLanguage } from "@/hooks/use-language";
 
 export function Home() {
+  const { isLoggedIn } = useAuth(); // جلب حالة تسجيل الدخول
   const { t, isArabic, language, setLanguage } = useLanguage();
   const createChat = useCreateChat();
   const [input, setInput] = useState("");
@@ -28,6 +29,13 @@ export function Home() {
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
+
+    // التحقق من تسجيل الدخول
+    if (!isLoggedIn) {
+      alert(isArabic ? "يرجى تسجيل الدخول أولاً للمتابعة" : "Please sign in first to continue");
+      return;
+    }
+
     if ((!input.trim() && !imageUrl) || createChat.isPending) return;
 
     createChat.mutate(input || (imageUrl ? t("suggestion.quantum") : t("sidebar.newChat")), {
@@ -47,6 +55,10 @@ export function Home() {
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isLoggedIn) {
+      alert(isArabic ? "سجل الدخول لرفع الصور" : "Sign in to upload images");
+      return;
+    }
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -58,6 +70,10 @@ export function Home() {
   };
 
   const toggleMic = () => {
+    if (!isLoggedIn) {
+      alert(isArabic ? "سجل الدخول لاستخدام الميكروفون" : "Sign in to use voice input");
+      return;
+    }
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
       alert("Browser does not support speech recognition");
       return;
@@ -66,7 +82,7 @@ export function Home() {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = isArabic ? "ar-SA" : "en-US";
-    
+
     recognition.onstart = () => setIsRecording(true);
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
@@ -83,6 +99,10 @@ export function Home() {
   };
 
   const handleSuggestionClick = (text: string) => {
+    if (!isLoggedIn) {
+      alert(isArabic ? "يرجى تسجيل الدخول أولاً" : "Please sign in first");
+      return;
+    }
     createChat.mutate(text, {
       onSuccess: (chat) => {
         setLocation(`/chat/${chat.id}`, {
@@ -151,31 +171,24 @@ export function Home() {
                       onClick={() => setImageUrl(null)}
                       className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 shadow-lg"
                     >
-                      <SendHorizontal className="w-3 h-3 rotate-45" />
+                      <X className="w-3 h-3" />
                     </button>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <div className="relative bg-[#1e1f20] rounded-3xl border border-white/10 shadow-2xl flex flex-col md:flex-row items-stretch md:items-end overflow-hidden focus-within:ring-1 focus-within:ring-primary/40 transition-all">
-              <div className="flex md:hidden items-center justify-between px-4 pt-3 pb-1 border-b border-white/5">
+            <div className={cn(
+              "relative bg-[#1e1f20] rounded-3xl border border-white/10 shadow-2xl flex flex-col md:flex-row items-stretch md:items-end overflow-hidden focus-within:ring-1 focus-within:ring-primary/40 transition-all",
+              !isLoggedIn && "opacity-80 border-dashed"
+            )}>
+              {/* Toolbar */}
+              <div className="flex items-center justify-between px-4 pt-3 pb-1 md:pb-3 md:pl-3 border-b md:border-b-0 border-white/5">
                 <div className="flex gap-1">
-                  <button
-                    onClick={() => setLanguage(language === "en" ? "ar" : "en")}
-                    className={cn(
-                      "p-2.5 transition-colors rounded-xl",
-                      isArabic ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary hover:bg-white/5"
-                    )}
-                    title={t("input.language")}
-                  >
-                    <Languages className="w-5 h-5" />
-                  </button>
-                </div>
-                <div className="flex gap-1">
+                  <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2.5 text-muted-foreground hover:text-primary transition-colors rounded-xl hover:bg-white/5"
+                    className="p-2 text-muted-foreground hover:text-primary transition-colors rounded-xl hover:bg-white/5"
                     title={t("input.image")}
                   >
                     <ImageIcon className="w-5 h-5" />
@@ -183,51 +196,24 @@ export function Home() {
                   <button
                     onClick={toggleMic}
                     className={cn(
-                      "p-2.5 transition-colors rounded-xl",
-                      isRecording ? "text-destructive bg-destructive/10 animate-pulse" : "text-muted-foreground hover:text-primary hover:bg-white/5"
+                      "p-2 transition-colors rounded-xl hover:bg-white/5",
+                      isRecording ? "text-destructive animate-pulse bg-destructive/10" : "text-muted-foreground hover:text-primary"
                     )}
                     title={t("input.mic")}
                   >
                     <Mic className="w-5 h-5" />
                   </button>
+                  <button
+                    onClick={() => setLanguage(language === "en" ? "ar" : "en")}
+                    className={cn(
+                      "p-2 transition-colors rounded-xl hover:bg-white/5",
+                      isArabic ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"
+                    )}
+                    title={t("input.language")}
+                  >
+                    <Languages className="w-5 h-5" />
+                  </button>
                 </div>
-              </div>
-
-              <div className="hidden md:flex pb-3 pl-3 gap-1">
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleImageUpload} 
-                  accept="image/*" 
-                  className="hidden" 
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="p-2 text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-white/5"
-                  title={t("input.image")}
-                >
-                  <ImageIcon className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={toggleMic}
-                  className={cn(
-                    "p-2 transition-colors rounded-lg hover:bg-white/5",
-                    isRecording ? "text-destructive animate-pulse" : "text-muted-foreground hover:text-primary"
-                  )}
-                  title={t("input.mic")}
-                >
-                  <Mic className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => setLanguage(language === "en" ? "ar" : "en")}
-                  className={cn(
-                    "p-2 transition-colors rounded-lg hover:bg-white/5",
-                    isArabic ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"
-                  )}
-                  title={t("input.language")}
-                >
-                  <Languages className="w-5 h-5" />
-                </button>
               </div>
 
               <textarea
@@ -235,19 +221,19 @@ export function Home() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={t("input.placeholder")}
+                placeholder={isLoggedIn ? t("input.placeholder") : (isArabic ? "سجل الدخول للبدء في المحادثة..." : "Sign in to start chatting...")}
                 rows={1}
                 className="w-full bg-transparent text-foreground placeholder:text-muted-foreground/50 border-0 py-4 px-4 resize-none max-h-60 focus:ring-0 text-base md:text-lg scrollbar-none"
                 disabled={createChat.isPending}
               />
-              
-              <div className="pb-3 pr-3 flex justify-end md:block">
+
+              <div className="pb-3 pr-3 flex justify-end">
                 <button
                   onClick={() => handleSubmit()}
-                  disabled={(!input.trim() && !imageUrl) || createChat.isPending}
+                  disabled={createChat.isPending || (!isLoggedIn && !input.trim())}
                   className={cn(
                     "p-2.5 rounded-2xl transition-all duration-300 flex items-center justify-center",
-                    (input.trim() || imageUrl)
+                    (input.trim() || imageUrl) && isLoggedIn
                       ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 scale-100" 
                       : "bg-white/5 text-muted-foreground/30 cursor-not-allowed scale-90"
                   )}
@@ -262,6 +248,7 @@ export function Home() {
             </div>
           </motion.div>
 
+          {/* Suggestions */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

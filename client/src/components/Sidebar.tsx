@@ -6,12 +6,13 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-
+import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
 
 export function Sidebar() {
+  const { user, signInWithGoogle, signOut, isLoggedIn, isLoading: isAuthLoading } = useAuth();
   const { t, isArabic } = useLanguage();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { data: chats, isLoading } = useChats();
   const createChat = useCreateChat();
   const deleteChat = useDeleteChat();
@@ -23,23 +24,54 @@ export function Sidebar() {
     : null;
 
   const handleCreateNew = () => {
-    createChat.mutate(t("sidebar.newChat"));
-    setIsMobileOpen(false);
+    // 1. التحقق من تسجيل الدخول أولاً
+    if (!isLoggedIn) {
+      alert(t("auth.loginRequired") || "Please sign in first to create a new chat");
+      // يمكنك أيضاً تفعيل عملية تسجيل الدخول تلقائياً هنا
+      // signInWithGoogle();
+      return;
+    }
+
+    // 2. إذا كان جاري الإنشاء بالفعل، لا تفعل شيئاً
+    if (createChat.isPending) return;
+
+    // 3. البدء بعملية الإنشاء
+    createChat.mutate(t("sidebar.newChat") || "New Chat", {
+      onSuccess: (newChat) => {
+        setLocation(`/chat/${newChat.id}`);
+        setIsMobileOpen(false);
+      },
+      onError: (error) => {
+        console.error("Create Chat Error:", error);
+        alert("Failed to create chat. Please try again.");
+      }
+    });
   };
 
   const handleDelete = (e: React.MouseEvent, id: number) => {
     e.preventDefault();
     e.stopPropagation();
-    if (confirm(t("sidebar.delete") + "?")) {
-      deleteChat.mutate(id);
+
+    // التأكد من أن الحذف لن يتم إلا إذا أكد المستخدم
+    if (window.confirm(t("sidebar.delete") + "?")) {
+      deleteChat.mutate(id, {
+        onSuccess: () => {
+          // إذا كان المستخدم داخل المحادثة التي يتم حذفها، نخرجه للرئيسية
+          if (currentChatId === id) {
+            setLocation("/");
+          }
+        },
+        onError: (err) => {
+          console.error("Delete Error:", err);
+          alert("Could not delete chat. It might not belong to you.");
+        }
+      });
     }
   };
 
   const toggleTheme = () => {
     const isDark = document.documentElement.classList.toggle('dark');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    // Force a re-render by updating state if needed, but since it's on documentElement, 
-    // tailwind's dark: classes will respond immediately.
   };
 
   const SettingsMenu = () => (
@@ -54,7 +86,7 @@ export function Sidebar() {
             <span>{t("settings.activity")}</span>
           </div>
         </button>
-        
+
         <button 
           onClick={() => alert("Gemini Instructions")}
           className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-sm text-foreground"
@@ -136,7 +168,7 @@ export function Sidebar() {
         <button 
           onClick={() => {
             const helpUrl = isArabic 
-              ? "https://support.google.com/gemini/?hl=ar" 
+              ? "https://support.google.com/gemini/?hl=en" 
               : "https://support.google.com/gemini/";
             window.open(helpUrl, '_blank');
           }}
@@ -159,9 +191,13 @@ export function Sidebar() {
         <button
           onClick={handleCreateNew}
           disabled={createChat.isPending}
-          className="w-full flex items-center justify-center gap-2 bg-primary/20 hover:bg-primary/30 text-primary-foreground py-3 px-4 rounded-xl border border-primary/20 transition-all duration-200 group"
+          className={cn(
+            "w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border transition-all duration-200 group",
+            "bg-primary/20 hover:bg-primary/30 text-primary-foreground border-primary/20",
+            createChat.isPending && "opacity-50 cursor-not-allowed"
+          )}
         >
-          <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+          <Plus className={cn("w-5 h-5 transition-transform duration-300", !createChat.isPending && "group-hover:rotate-90")} />
           <span className="font-semibold">{createChat.isPending ? t("sidebar.creating") : t("sidebar.newChat")}</span>
         </button>
       </div>
@@ -171,20 +207,20 @@ export function Sidebar() {
         <div className="text-xs font-medium text-muted-foreground px-3 py-2 uppercase tracking-wider">
           {t("sidebar.recent")}
         </div>
-        
+
         {isLoading ? (
           <div className="px-3 space-y-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-10 bg-white/5 rounded-lg animate-pulse" />
             ))}
           </div>
-        ) : chats?.length === 0 ? (
+        ) : !chats || chats.length === 0 ? (
           <div className="px-4 py-8 text-center text-muted-foreground text-sm">
             <Sparkles className="w-8 h-8 mx-auto mb-2 opacity-20" />
             {t("sidebar.empty")}
           </div>
         ) : (
-          chats?.map((chat) => (
+          chats.map((chat) => (
             <Link key={chat.id} href={`/chat/${chat.id}`}>
               <div
                 className={cn(
@@ -196,7 +232,7 @@ export function Sidebar() {
                 onClick={() => setIsMobileOpen(false)}
               >
                 <MessageSquare className="w-4 h-4 shrink-0 opacity-70" />
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="truncate text-sm font-medium">
                     {chat.title}
@@ -206,12 +242,11 @@ export function Sidebar() {
                   </div>
                 </div>
 
-                {/* Delete button appears on hover or if active */}
                 <button
                   onClick={(e) => handleDelete(e, chat.id)}
                   className={cn(
                     "absolute right-2 p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100",
-                    currentChatId === chat.id && "opacity-0 group-hover:opacity-100" // Keep clean when active unless hovering
+                    currentChatId === chat.id && "opacity-0 group-hover:opacity-100"
                   )}
                   title={t("sidebar.delete")}
                 >
@@ -225,6 +260,58 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="p-2 border-t border-white/5 space-y-1">
+        <div className="px-2">
+          {isLoggedIn ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="group w-full flex items-center gap-3 p-2 rounded-2xl hover:bg-white/[0.05] transition-all duration-200">
+                  <div className="relative">
+                    <img 
+                      src={user?.user_metadata?.avatar_url || `https://avatar.iran.liara.run/public/${user?.id}`} 
+                      className="w-9 h-9 rounded-full border border-white/10 group-hover:border-blue-500/50 transition-colors" 
+                      alt="User" 
+                    />
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-[#131314] rounded-full" />
+                  </div>
+                  <div className="flex-1 text-left overflow-hidden">
+                    <p className="text-sm font-semibold text-white/90 truncate">
+                      {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
+                    </p>
+                    <p className="text-[10px] text-white/40 truncate">Account Active</p>
+                  </div>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="top" align="center" className="w-72 p-2 bg-[#1e1f20] border-white/10 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
+                  <div className="px-4 py-3 border-b border-white/5 mb-1">
+                    <p className="text-xs text-white/40 mb-1">{t("auth.signedInAs")}</p>
+                    <p className="text-sm font-medium text-white truncate">{user?.email}</p>
+                  </div>
+                  <button 
+                    onClick={() => signOut()} 
+                    className="w-full flex items-center gap-2 p-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors text-sm font-medium"
+                  >
+                    <X className="w-4 h-4" />
+                    {t("auth.signOut")}
+                  </button>
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <button
+              onClick={() => signInWithGoogle()}
+              disabled={isAuthLoading}
+              className="group relative w-full flex items-center justify-center py-3.5 rounded-2xl transition-all duration-300 active:scale-[0.97] overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-[#4285F4] via-[#9b72cb] to-[#d96570] opacity-90 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]" />
+              <div className="relative flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-white" />
+                <span className="text-sm font-bold text-white tracking-wide">
+                  {isAuthLoading ? t("auth.loading") : t("auth.getStarted")}
+                </span>
+              </div>
+            </button>
+          )}
+        </div>
         <Popover>
           <PopoverTrigger asChild>
             <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-sm text-muted-foreground hover:text-foreground transition-all active:scale-[0.98]">
@@ -232,7 +319,7 @@ export function Sidebar() {
               <span className="font-medium">{t("settings.title")}</span>
             </button>
           </PopoverTrigger>
-          <PopoverContent side="right" align="end" className="p-0 border-none bg-transparent shadow-none" sideOffset={10}>
+          <PopoverContent side="top" align="center" className="p-0 border-none bg-transparent shadow-none" sideOffset={10}>
             <SettingsMenu />
           </PopoverContent>
         </Popover>
@@ -246,7 +333,6 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile Toggle */}
       <div className="md:hidden fixed top-4 left-4 z-50 flex items-center gap-2">
         <button
           onClick={() => setIsMobileOpen(!isMobileOpen)}
@@ -256,12 +342,10 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Desktop Sidebar */}
       <div className="hidden md:block w-72 h-screen fixed left-0 top-0 bottom-0 z-30">
         <SidebarContent />
       </div>
 
-      {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {isMobileOpen && (
           <>
@@ -273,11 +357,14 @@ export function Sidebar() {
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
             />
             <motion.div
-              initial={{ x: "-100%" }}
+              initial={{ x: isArabic ? "100%" : "-100%" }}
               animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
+              exit={{ x: isArabic ? "100%" : "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 w-72 z-50 md:hidden bg-card"
+              className={cn(
+                "fixed inset-y-0 w-72 z-50 md:hidden bg-card",
+                isArabic ? "right-0" : "left-0"
+              )}
             >
               <SidebarContent />
             </motion.div>

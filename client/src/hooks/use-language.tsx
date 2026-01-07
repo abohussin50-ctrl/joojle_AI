@@ -50,7 +50,14 @@ const translations: Record<Language, Record<string, string>> = {
     "settings.subscriptions": "Subscriptions",
     "settings.notebooklm": "NotebookLM",
     "settings.feedback": "Send feedback",
-    "settings.help": "Help"
+    "settings.help": "Help",
+    "auth.signIn": "Sign in",
+    "auth.signOut": "Sign out",
+    "auth.getStarted": "Sign in",
+    "auth.loading": "Loading...",
+    "auth.signUp": "Create account",
+    "auth.guest": "Guest",
+    "auth.loginRequired": "Please login first to start a new chat"
   },
   ar: {
     "app.name": "joojle AI",
@@ -90,7 +97,14 @@ const translations: Record<Language, Record<string, string>> = {
     "settings.subscriptions": "عرض الاشتراكات",
     "settings.notebooklm": "NotebookLM",
     "settings.feedback": "إرسال ملاحظات",
-    "settings.help": "مساعدة"
+    "settings.help": "مساعدة",
+    "auth.signIn": "تسجيل الدخول",
+    "auth.getStarted": "تسجيل الدخول",
+    "auth.loading": "جاري التحميل...", 
+    "auth.signOut": "تسجيل الخروج",
+    "auth.signUp": "إنشاء حساب",
+    "auth.guest": "زائر",
+    "auth.loginRequired": "يرجى تسجيل الدخول أولاً لبدء محادثة جديدة"
   }
 };
 

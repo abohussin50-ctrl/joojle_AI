@@ -124,6 +124,9 @@ export default function Chat() {
 
   // 2. شاشة الخطأ أو عدم الصلاحية (تم تحسينها)
   if (error || !chatId) {
+    const isNoChat = !chatId;
+    const isForbidden = error?.message === "Unauthorized" || error?.message === "Forbidden";
+
     return (
       <div className="flex h-screen bg-background">
         <Sidebar />
@@ -137,17 +140,32 @@ export default function Chat() {
               <AlertCircle className="w-8 h-8 text-destructive" />
             </div>
             <h1 className="text-xl font-bold mb-2">
-              {error ? "Access Denied" : "No Chat Selected"}
+              {isNoChat 
+                ? (isArabic ? "لم يتم اختيار محادثة" : "No Chat Selected")
+                : isForbidden
+                  ? (isArabic ? "تم رفض الوصول" : "Access Denied")
+                  : (isArabic ? "المحادثة غير موجودة" : "Chat Not Found")}
             </h1>
+
             <p className="text-muted-foreground mb-6 text-sm">
-              {error ? "You don't have permission to view this conversation." : "Please select a chat from the sidebar to start talking."}
+              {isNoChat
+                ? (isArabic 
+                    ? "يرجى اختيار محادثة من القائمة الجانبية لبدء التحدث." 
+                    : "Please select a chat from the sidebar to start talking.")
+                : isForbidden
+                  ? (isArabic 
+                      ? "ليس لديك صلاحية لعرض هذه المحادثة." 
+                      : "You don't have permission to view this conversation.")
+                  : (isArabic
+                      ? "ربما تم حذف هذه المحادثة أو أنها غير موجودة."
+                      : "This conversation might have been deleted or doesn't exist.")}
             </p>
             <button 
               onClick={() => setLocation("/")}
               className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2 rounded-xl mx-auto hover:opacity-90 transition-all"
             >
               <Home className="w-4 h-4" />
-              Go Home
+              {isArabic ? "الرئيسية" : "Go Home"}
             </button>
           </motion.div>
         </main>

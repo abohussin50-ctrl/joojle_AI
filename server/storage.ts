@@ -38,25 +38,28 @@ export class DatabaseStorage implements IStorage {
 
   // ✅ جلب المحادثات الخاصة بالمستخدم الحالي فقط
   async getChats(userId: string): Promise<Chat[]> {
+    if (!userId) return [];
     return await db
       .select()
       .from(chats)
-      .where(eq(chats.userId, String(userId))) // فلترة صارمة
+      .where(eq(chats.userId, String(userId).trim()))
       .orderBy(desc(chats.createdAt));
   }
 
   async getChat(id: number): Promise<Chat | undefined> {
+    if (isNaN(id)) return undefined;
     const [chat] = await db.select().from(chats).where(eq(chats.id, id));
     return chat;
   }
 
   // ✅ ربط المحادثة الجديدة بـ userId بشكل إجباري
   async createChat(chat: { title: string; userId: string }): Promise<Chat> {
+    if (!chat.userId) throw new Error("User ID is required to create a chat");
     const [newChat] = await db
       .insert(chats)
       .values({
         title: chat.title,
-        userId: String(chat.userId), // حفظ معرف سوبابيس (UUID)
+        userId: String(chat.userId).trim(),
       })
       .returning();
     return newChat;

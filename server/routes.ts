@@ -16,7 +16,9 @@ export async function registerRoutes(
 
   // دالة موحدة لاستخراج معرف المستخدم
   const getUserId = (req: any): string | null => {
-    const id = req.user?.id || req.headers["x-user-id"];
+    // ⚠️ تحذير أمني: نعتمد فقط على req.user الذي يأتي من التوثيق الحقيقي (مثل Passport أو Middleware)
+    // ولا نعتمد على x-user-id القادم من الواجهة الأمامية لأنه قابل للتزوير
+    const id = req.user?.id; 
     return id ? String(id).trim() : null;
   };
 
@@ -85,7 +87,9 @@ export async function registerRoutes(
       const chat = await storage.getChat(id);
       if (!chat) return res.status(404).json({ message: "Not found" });
 
-      if (String(chat.userId) !== userId) {
+      // ✅ تأكيد الربط: إذا كان userId في قاعدة البيانات null أو لا يطابق المستخدم الحالي، امنع الوصول
+      if (!chat.userId || String(chat.userId).trim() !== userId) {
+        console.warn(`Unauthorized access attempt by user ${userId} to chat ${id}`);
         return res.status(403).json({ message: "Unauthorized: This is a private chat" });
       }
 

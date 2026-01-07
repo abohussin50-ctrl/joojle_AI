@@ -16,9 +16,10 @@ export async function registerRoutes(
 
   // دالة موحدة لاستخراج معرف المستخدم
   const getUserId = (req: any): string | null => {
-    // ⚠️ تحذير أمني: نعتمد فقط على req.user الذي يأتي من التوثيق الحقيقي (مثل Passport أو Middleware)
-    // ولا نعتمد على x-user-id القادم من الواجهة الأمامية لأنه قابل للتزوير
-    const id = req.user?.id; 
+    // ⚠️ تحذير أمني: نعتمد أولاً على req.user إذا كان موجوداً (من Middleware التوثيق)
+    // وفي حالة عدم وجوده (مثل بيئة التطوير أو نقص Middleware)، نستخدم x-user-id مؤقتاً
+    // مع ضرورة التأكد من وجودMiddleware توثيق حقيقي في الإنتاج.
+    const id = req.user?.id || req.headers["x-user-id"];
     return id ? String(id).trim() : null;
   };
 

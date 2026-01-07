@@ -2,20 +2,19 @@ import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// 1. جدول المستخدمين
+// 1. جدول المستخدمين (للتوثيق المحلي أو الربط)
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
 });
 
-// 2. جدول المحادثات
+// 2. جدول المحادثات (تأمين الخصوصية)
 export const chats = pgTable("chats", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
-  // تم تغيير النوع هنا من text إلى integer ليطابق id المستخدم
-  // هذا التغيير ضروري لنجاح عملية الاستعلام (Query) عن الاسم
-  userId: integer("user_id").notNull(), 
+  // معرف المستخدم كـ text ليتوافق مع Supabase UUID
+  userId: text("user_id").notNull(), 
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -29,7 +28,7 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// --- تصدير مخططات الإدخال (Insert Schemas) ---
+// --- مخططات التحقق (Zod Schemas) ---
 export const insertUserSchema = createInsertSchema(users);
 
 export const insertChatSchema = createInsertSchema(chats).omit({ 
@@ -43,7 +42,7 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   createdAt: true 
 });
 
-// --- تصدير الأنواع (Types) ---
+// --- الأنواع البرمجية (TypeScript Types) ---
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Chat = typeof chats.$inferSelect;

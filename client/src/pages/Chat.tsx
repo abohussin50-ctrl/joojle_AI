@@ -3,7 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { useChat, useSendMessage } from "@/hooks/use-chat";
 import { Sidebar } from "@/components/Sidebar";
 import { Message, TypingIndicator } from "@/components/Message";
-import { SendHorizontal, Sparkles, AlertCircle, Mic, Image as ImageIcon, Languages, X } from "lucide-react";
+import { SendHorizontal, Sparkles, AlertCircle, Mic, Image as ImageIcon, Languages, X, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/hooks/use-language";
@@ -22,8 +22,6 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-
-  // حالة لتخزين الرسالة التي يتم إرسالها حالياً لعرضها فوراً
   const [optimisticMessage, setOptimisticMessage] = useState<{content: string, imageUrl?: string} | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -31,12 +29,11 @@ export default function Chat() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
 
-  // دمج الرسائل القديمة مع الرسالة الحالية "المتفائلة"
   const allMessages = useMemo(() => {
     const msgs = data?.messages ? [...data.messages] : [];
     if (optimisticMessage) {
       msgs.push({
-        id: Date.now(), // معرف مؤقت
+        id: Date.now(),
         chatId: chatId || 0,
         role: "user",
         content: optimisticMessage.content,
@@ -54,32 +51,27 @@ export default function Chat() {
     }
   }, [input]);
 
-  // التمرير للأسفل عند إضافة أي رسالة (حتى المتفائلة)
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [allMessages, sendMessage.isPending]);
 
+  // دالة الإرسال
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     const contentToSend = input.trim();
     if ((!contentToSend && !imageUrl) || !chatId || sendMessage.isPending) return;
 
-    // 1. عرض الرسالة فوراً في الواجهة
     setOptimisticMessage({ 
       content: contentToSend || (imageUrl ? "Analyze this image" : ""), 
       imageUrl: imageUrl || undefined 
     });
 
-    // 2. إرسال الطلب للخادم
     sendMessage.mutate({ 
       chatId, 
       content: contentToSend || (imageUrl ? "Analyze this image" : ""), 
       imageUrl: imageUrl || undefined 
     }, {
-      onSettled: () => {
-        // 3. عند انتهاء الطلب (نجاح أو فشل)، نحذف الرسالة المؤقتة لأنها ستأتي من قاعدة البيانات
-        setOptimisticMessage(null);
-      }
+      onSettled: () => setOptimisticMessage(null)
     });
 
     setInput("");
@@ -98,61 +90,70 @@ export default function Chat() {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64Image = reader.result as string;
-        setImageUrl(base64Image);
-        // هنا يفضل ترك المستخدم يضغط إرسال أو إرسالها فوراً بنفس منطق الـ Optimistic
-        setOptimisticMessage({ content: "Analyze this image...", imageUrl: base64Image });
-        sendMessage.mutate({
-          chatId: chatId!,
-          content: "Analyze this image and tell me what you see.",
-          imageUrl: base64Image,
-        }, { onSettled: () => setOptimisticMessage(null) });
-      };
+      reader.onloadend = () => setImageUrl(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
   const toggleMic = () => {
-    if (!SpeechRecognition) {
-      alert("Browser does not support speech recognition");
-      return;
-    }
-
+    if (!SpeechRecognition) return;
     if (!recognitionRef.current) {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.onstart = () => setIsRecording(true);
       recognitionRef.current.onend = () => setIsRecording(false);
       recognitionRef.current.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInput(transcript);
-        // إرسال فوري مع تحديث متفائل
-        setOptimisticMessage({ content: transcript });
-        sendMessage.mutate({ chatId: chatId!, content: transcript }, { onSettled: () => setOptimisticMessage(null) });
+        setInput(event.results[0][0].transcript);
       };
     }
-
-    if (isRecording) {
-      recognitionRef.current.stop();
-    } else {
-      recognitionRef.current.lang = isArabic ? "ar-SA" : "en-US";
-      recognitionRef.current.start();
-    }
+    isRecording ? recognitionRef.current.stop() : recognitionRef.current.start();
   };
 
+  // 1. شاشة التحميل
   if (isLoading && chatId && !optimisticMessage) {
     return (
       <div className="flex h-screen bg-background">
         <Sidebar />
         <div className="flex-1 flex items-center justify-center">
-          <Sparkles className="w-8 h-8 animate-spin text-primary" />
+          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
+            <Sparkles className="w-10 h-10 text-primary" />
+          </motion.div>
         </div>
       </div>
     );
   }
 
-  // ... (نفس شروط الخطأ و chatId غير الموجود تبقى كما هي)
-  if (!chatId) return <div className="flex h-screen bg-background"><Sidebar /><main className="flex-1 flex items-center justify-center"><h1>Select Chat</h1></main></div>;
+  // 2. شاشة الخطأ أو عدم الصلاحية (تم تحسينها)
+  if (error || !chatId) {
+    return (
+      <div className="flex h-screen bg-background">
+        <Sidebar />
+        <main className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white/5 border border-white/10 p-8 rounded-3xl max-w-sm"
+          >
+            <div className="bg-destructive/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-destructive" />
+            </div>
+            <h1 className="text-xl font-bold mb-2">
+              {error ? "Access Denied" : "No Chat Selected"}
+            </h1>
+            <p className="text-muted-foreground mb-6 text-sm">
+              {error ? "You don't have permission to view this conversation." : "Please select a chat from the sidebar to start talking."}
+            </p>
+            <button 
+              onClick={() => setLocation("/")}
+              className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2 rounded-xl mx-auto hover:opacity-90 transition-all"
+            >
+              <Home className="w-4 h-4" />
+              Go Home
+            </button>
+          </motion.div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden font-body">
@@ -172,15 +173,11 @@ export default function Chat() {
                 <Message key={msg.id} message={msg} />
               ))}
             </AnimatePresence>
-
-            {/* مؤشر التحميل يظهر فقط عندما ننتظر رد الذكاء الاصطناعي والرسالة المتفائلة قد أرسلت */}
             {sendMessage.isPending && <TypingIndicator />}
-
             <div ref={messagesEndRef} className="h-4" />
           </div>
         </div>
 
-        {/* صندوق الإدخال كما هو مع إضافة التحسينات البسيطة */}
         <div className="p-4 md:p-6 bg-gradient-to-t from-background via-background z-20">
           <div className="max-w-3xl mx-auto relative group">
             <AnimatePresence>

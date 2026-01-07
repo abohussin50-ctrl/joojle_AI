@@ -1,37 +1,47 @@
 import { db } from "./db";
-import { chats, messages, users, type Chat, type Message, type InsertChat, type InsertMessage, type User, type InsertUser } from "@shared/schema";
+import { 
+  chats, 
+  messages, 
+  users, 
+  type Chat, 
+  type Message, 
+  type InsertChat, 
+  type InsertMessage, 
+  type User, 
+  type InsertUser 
+} from "@shared/schema";
 import { eq, desc, asc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>; // أضفنا هذه الدالة
-  getChats(userId: number | string): Promise<Chat[]>; 
+  createUser(user: InsertUser): Promise<User>;
+  // تعديل الواجهة لتقبل userId في جلب القائمة
+  getChats(userId: string): Promise<Chat[]>; 
   getChat(id: number): Promise<Chat | undefined>;
-  createChat(chat: { title: string, userId: any }): Promise<Chat>;
+  // تعديل الواجهة لفرض وجود userId عند إنشاء محادثة
+  createChat(chat: { title: string; userId: string }): Promise<Chat>;
   deleteChat(id: number): Promise<void>;
   getMessages(chatId: number): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
 }
 
 export class DatabaseStorage implements IStorage {
-
   async getUser(id: number): Promise<User | undefined> {
-    // نستخدم parseInt للتأكد من أننا نبحث برقم صحيح
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
-  // دالة لإنشاء مستخدم جديد إذا لم يكن موجوداً
   async createUser(user: InsertUser): Promise<User> {
     const [newUser] = await db.insert(users).values(user).returning();
     return newUser;
   }
 
-  async getChats(userId: number | string): Promise<Chat[]> {
+  // ✅ جلب المحادثات الخاصة بالمستخدم الحالي فقط
+  async getChats(userId: string): Promise<Chat[]> {
     return await db
       .select()
       .from(chats)
-      .where(eq(chats.userId, String(userId)))
+      .where(eq(chats.userId, String(userId))) // فلترة صارمة
       .orderBy(desc(chats.createdAt));
   }
 
@@ -40,15 +50,20 @@ export class DatabaseStorage implements IStorage {
     return chat;
   }
 
-  async createChat(chat: { title: string, userId: any }): Promise<Chat> {
-    const [newChat] = await db.insert(chats).values({
-      title: chat.title,
-      userId: String(chat.userId)
-    }).returning();
+  // ✅ ربط المحادثة الجديدة بـ userId بشكل إجباري
+  async createChat(chat: { title: string; userId: string }): Promise<Chat> {
+    const [newChat] = await db
+      .insert(chats)
+      .values({
+        title: chat.title,
+        userId: String(chat.userId), // حفظ معرف سوبابيس (UUID)
+      })
+      .returning();
     return newChat;
   }
 
   async deleteChat(id: number): Promise<void> {
+    // ملاحظة: يُفضل دائماً التحقق من الملكية في routes.ts قبل الاستدعاء هنا
     await db.delete(chats).where(eq(chats.id, id));
   }
 

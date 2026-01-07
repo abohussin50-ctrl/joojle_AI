@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
-import { motion, AnimatePresence } from "framer-motion"; // أضفنا هذه المكتبة
+import { motion, AnimatePresence } from "framer-motion";
 
 interface AuthContextType {
   user: User | null;
@@ -13,7 +13,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// --- 1. إضافة مكون شاشة التحميل الاحترافية ---
+// --- مكون شاشة التحميل الاحترافية (Gemini Style) ---
 const LoadingScreen = () => (
   <motion.div 
     initial={{ opacity: 0 }} 
@@ -21,16 +21,14 @@ const LoadingScreen = () => (
     exit={{ opacity: 0 }}
     className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#131314]"
   >
-    {/* شعار متحرك */}
     <motion.div 
-      animate={{ scale: [1, 1.05, 1], opacity: [0.5, 1, 0.5] }} 
+      animate={{ scale: [1, 1.02, 1], opacity: [0.8, 1, 0.8] }} 
       transition={{ repeat: Infinity, duration: 2 }}
-      className="text-5xl font-bold bg-gradient-to-r from-[#4285F4] via-[#9b72cb] to-[#d96570] bg-clip-text text-transparent mb-10"
+      className="text-5xl font-bold bg-gradient-to-r from-[#4285F4] via-[#9b72cb] to-[#d96570] bg-clip-text text-transparent mb-10 select-none"
     >
       joojle AI
     </motion.div>
 
-    {/* بار التحميل النحيف (Gemini Style) */}
     <div className="w-64 h-[2px] bg-white/5 rounded-full overflow-hidden relative">
       <motion.div 
         animate={{ x: [-250, 250] }}
@@ -46,16 +44,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // 1. جلب الجلسة الأولية عند تحميل التطبيق
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      // نعطي تأخير بسيط ليشعر المستخدم بسلاسة التصميم
+      // تأخير بسيط فقط لضمان نعومة الانتقال البصري
       setTimeout(() => setIsLoading(false), 800);
     });
 
+    // 2. مراقبة التغيرات في حالة المصادقة
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT') {
+
+      if (_event === 'SIGNED_IN') {
         setIsLoading(false);
+      }
+
+      if (_event === 'SIGNED_OUT') {
+        setUser(null);
+        setIsLoading(false);
+        // مسح أي بيانات متبقية في التخزين المحلي لضمان الخصوصية
+        window.localStorage.clear(); 
       }
     });
 
@@ -63,37 +71,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGoogle = async () => {
-    // تفعيل شاشة التحميل فوراً عند الضغط
     setIsLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin }
+      options: { 
+        redirectTo: window.location.origin,
+        queryParams: { prompt: 'select_account' } // للسماح للمستخدم بتبديل الحساب بسهولة
+      }
     });
     if (error) {
       setIsLoading(false);
-      console.error(error.message);
+      console.error("Login Error:", error.message);
     }
   };
 
   const signOut = async () => {
     setIsLoading(true);
+    // مسح المستخدم من الحالة فوراً قبل انتظار رد سوبابيس لضمان حماية البيانات
+    setUser(null); 
     await supabase.auth.signOut();
-    // تأخير بسيط لمحاكاة الخروج الاحترافي
-    setTimeout(() => {
-      setUser(null);
-      setIsLoading(false);
-    }, 1000);
+
+    // إعادة تحميل الصفحة اختيارياً لتنظيف جميع حالات React Query والمخازن
+    window.location.href = "/"; 
   };
 
   return (
     <AuthContext.Provider value={{ user, signInWithGoogle, signOut, isLoggedIn: !!user, isLoading }}>
-      {/* 2. إضافة AnimatePresence للتحكم في ظهور واختفاء الشاشة */}
-      <AnimatePresence>
-        {isLoading && <LoadingScreen />}
+      <AnimatePresence mode="wait">
+        {isLoading ? (
+          <LoadingScreen key="loading" />
+        ) : (
+          <motion.div
+            key="content"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="h-full w-full"
+          >
+            {children}
+          </motion.div>
+        )}
       </AnimatePresence>
-
-      {/* عرض المحتوى الأصلي */}
-      {children}
     </AuthContext.Provider>
   );
 }

@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "./use-auth";
 
 /**
- * دالة استخراج الاسم من بيانات Supabase
+ * دالة استخراج الاسم من بيانات Supabase بشكل آمن
  */
 const getUserDisplayName = (user: any) => {
   if (!user) return "User";
@@ -16,16 +16,17 @@ const getUserDisplayName = (user: any) => {
   );
 };
 
-// 1. جلب قائمة المحادثات
+// 1. جلب قائمة المحادثات الخاصة بالمستخدم فقط
 export function useChats() {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: [api.chats.list.path, user?.id],
+    queryKey: [api.chats.list.path, user?.id], // ربط الكاش بـ ID المستخدم
     queryFn: async () => {
+      if (!user) return [];
       const res = await fetch(api.chats.list.path, { 
         headers: { 
-          "x-user-id": user?.id || "",
+          "x-user-id": user.id,
           "x-user-name": encodeURIComponent(getUserDisplayName(user))
         },
         credentials: "include" 
@@ -61,13 +62,15 @@ export function useCreateChat() {
       return api.chats.create.responses[201].parse(await res.json());
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [api.chats.list.path] });
+      // تحديث قائمة المحادثات فوراً
+      queryClient.invalidateQueries({ queryKey: [api.chats.list.path, user?.id] });
+      // الانتقال للمحادثة الجديدة
       setLocation(`/chat/${data.id}`);
     },
   });
 }
 
-// 3. دالة الحذف (المفقودة التي سببت الخطأ في الصورة)
+// 3. حذف محادثة
 export function useDeleteChat() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -87,16 +90,17 @@ export function useDeleteChat() {
       if (!res.ok) throw new Error("Failed to delete chat");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.chats.list.path] });
-    }
+      // تحديث القائمة بعد الحذف
+      queryClient.invalidateQueries({ queryKey: [api.chats.list.path, user?.id] });
+    },
   });
 }
 
-// 4. جلب محادثة واحدة
+// 4. جلب محادثة واحدة (مع تأمين الخصوصية)
 export function useChat(id: number | null) {
   const { user } = useAuth();
   return useQuery({
-    queryKey: [buildUrl(api.chats.get.path, { id: id || 0 }), user?.id],
+    queryKey: ["chat", id, user?.id],
     queryFn: async () => {
       if (!id || !user) return null;
       const url = buildUrl(api.chats.get.path, { id });
@@ -107,22 +111,25 @@ export function useChat(id: number | null) {
         },
         credentials: "include" 
       });
+
+      if (res.status === 403) throw new Error("Unauthorized");
       if (res.status === 404) return null;
       if (!res.ok) throw new Error("Failed to fetch chat");
+
       return api.chats.get.responses[200].parse(await res.json());
     },
     enabled: !!id && !!user,
+    retry: false, 
   });
 }
 
-// 5. إرسال رسالة
+// 5. إرسال رسالة (مع التحديث التلقائي للواجهة)
 export function useSendMessage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ chatId, content, imageUrl }: { chatId: number; content: string; imageUrl?: string }) => {
-      // بناء الرابط بشكل صحيح باستخدام buildUrl
       const url = buildUrl(api.chats.addMessage.path, { id: chatId });
 
       const res = await fetch(url, {
@@ -140,7 +147,8 @@ export function useSendMessage() {
       return api.chats.addMessage.responses[201].parse(await res.json());
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [buildUrl(api.chats.get.path, { id: variables.chatId })] });
+      // تحديث كاش المحادثة الحالية لإظهار رد الـ AI
+      queryClient.invalidateQueries({ queryKey: ["chat", variables.chatId, user?.id] });
     },
   });
 }

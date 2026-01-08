@@ -113,9 +113,33 @@ export default function Chat() {
     return (
       <div className="flex h-screen bg-background">
         <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
-            <Sparkles className="w-10 h-10 text-primary" />
+        <div className="flex-1 flex items-center justify-center bg-[#0b0b0c]">
+          <motion.div 
+            // أنيميشن النبض مع تغيير طفيف في الحجم والشفافية
+            animate={{ 
+              scale: [1, 1.15, 1],
+              opacity: [0.7, 1, 0.7] 
+            }} 
+            transition={{ 
+              repeat: Infinity, 
+              duration: 1.5, 
+              ease: "easeInOut" 
+            }}
+            className="relative flex items-center justify-center"
+          >
+            {/* تأثير الهالة المضيئة خلف الشعار */}
+            <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" />
+
+            {/* عرض الصورة favicon.png */}
+            <img 
+              src="/favicon.png" 
+              alt="Loading..." 
+              className="w-16 h-16 object-contain relative z-10"
+              onError={(e) => {
+                // في حال عدم العثور على الصورة يظهر البديل الافتراضي
+                e.currentTarget.src = "https://www.gstatic.com/lamda/images/favicon_v1_150160d13988654cbfd5.svg";
+              }}
+            />
           </motion.div>
         </div>
       </div>

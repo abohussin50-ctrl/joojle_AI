@@ -191,45 +191,6 @@ export function Sidebar() {
       )}
     >
       {/* Header with Logo and Collapse Button */}
-      <div className={cn(
-        "flex items-center p-4 mb-2 relative",
-        isCollapsed ? "justify-center" : "justify-between"
-      )}>
-        <div className="flex items-center gap-2 overflow-hidden">
-          <div className="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          {!isCollapsed && (
-            <span className="text-xl font-bold bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent truncate whitespace-nowrap">
-              joojle
-            </span>
-          )}
-        </div>
-        
-        {/* Minimize Button - Desktop Only */}
-        {!isCollapsed && (
-          <button
-            onClick={() => setIsCollapsed(true)}
-            className="hidden md:flex p-2 hover:bg-white/5 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
-            title="Minimize"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-        )}
-        
-        {/* Expand Button - Desktop Only */}
-        {isCollapsed && (
-          <button
-            onClick={() => setIsCollapsed(false)}
-            className="hidden md:flex absolute top-4 right-2 p-1.5 hover:bg-white/5 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
-            title="Expand"
-          >
-            <Menu className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-
-      {/* New Chat Button */}
       <div className="px-4 mb-4">
         <button
           onClick={handleCreateNew}

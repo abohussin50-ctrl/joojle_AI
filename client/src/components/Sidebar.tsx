@@ -186,11 +186,7 @@ export function Sidebar() {
   );
 
   const SidebarContent = () => (
-    <motion.div 
-      initial={false}
-      animate={{ width: isCollapsed ? 80 : 288 }}
-      transition={{ type: "spring", damping: 25, stiffness: 200 }}
-      className={cn(
+    <div className={cn(
         "flex flex-col h-full bg-[#131314] backdrop-blur-xl border-r border-white/5 overflow-hidden"
       )}
     >

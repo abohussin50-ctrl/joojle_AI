@@ -12,12 +12,12 @@
   ],
   "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "dist/index.cjs"
+      "source": "/api/(.*)",
+      "destination": "dist/index.cjs"
     },
     {
-      "src": "/(.*)",
-      "dest": "dist/public/index.html"
+      "source": "/(.*)",
+      "destination": "dist/public/index.html"
     }
   ]
 }

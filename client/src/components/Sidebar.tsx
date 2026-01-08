@@ -211,7 +211,7 @@ export function Sidebar() {
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
                 className="text-xl font-bold text-white tracking-tight whitespace-nowrap overflow-hidden"
               >
-                joojle
+                joojle AI
               </motion.span>
             )}
           </AnimatePresence>

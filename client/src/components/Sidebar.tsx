@@ -191,6 +191,61 @@ export function Sidebar() {
       )}
     >
       {/* Header with Logo and Collapse Button */}
+      <div className={cn(
+        "flex items-center px-4 py-3 mb-2 relative min-h-[64px]",
+        isCollapsed ? "justify-center" : "justify-between"
+      )}>
+        <div className="flex items-center gap-3 overflow-hidden">
+          {/* Logo Icon: تصميم عصري مع ظل متوهج */}
+          <div className="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-[#3b82f6] via-[#8b5cf6] to-[#ec4899] flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:rotate-12 transition-transform duration-500">
+            <Sparkles className="w-5 h-5 text-white animate-pulse" />
+          </div>
+
+          {/* Text Animation: يختفي النص بحركة انزلاقية ناعمة جداً */}
+          <AnimatePresence initial={false}>
+            {!isCollapsed && (
+              <motion.span
+                initial={{ opacity: 0, width: 0, x: -10 }}
+                animate={{ opacity: 1, width: "auto", x: 0 }}
+                exit={{ opacity: 0, width: 0, x: -10 }}
+                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                className="text-xl font-bold text-white tracking-tight whitespace-nowrap overflow-hidden"
+              >
+                joojle
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Minimize/Expand Buttons: تظهر فقط في الكمبيوتر hidden md:flex */}
+        <div className="hidden md:flex items-center">
+          <AnimatePresence mode="wait">
+            {!isCollapsed ? (
+              <motion.button
+                key="close"
+                initial={{ opacity: 0, rotate: -90 }}
+                animate={{ opacity: 1, rotate: 0 }}
+                exit={{ opacity: 0, rotate: 90 }}
+                onClick={() => setIsCollapsed(true)}
+                className="p-2 hover:bg-white/10 rounded-xl transition-all duration-200 text-muted-foreground hover:text-white"
+              >
+                <Menu className="w-5 h-5" />
+              </motion.button>
+            ) : (
+              <motion.button
+                key="open"
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                onClick={() => setIsCollapsed(false)}
+                className="absolute left-1/2 -translate-x-1/2 p-2 hover:bg-white/10 rounded-xl transition-all duration-200 text-muted-foreground hover:text-white z-50"
+              >
+                <Menu className="w-5 h-5" />
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
       <div className="px-4 mb-4">
         <button
           onClick={handleCreateNew}

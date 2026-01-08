@@ -196,9 +196,17 @@ export function Sidebar() {
         isCollapsed ? "justify-center" : "justify-between"
       )}>
         <div className="flex items-center gap-3 overflow-hidden">
-          {/* Logo Icon: تصميم عصري مع ظل متوهج */}
-          <div className="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-[#3b82f6] via-[#8b5cf6] to-[#ec4899] flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:rotate-12 transition-transform duration-500">
-            <Sparkles className="w-5 h-5 text-white animate-pulse" />
+          {/* Logo Container: الآن يعرض صورتك favicon.png داخل التدرج اللوني المتوهج */}
+          <div className="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-[#3b82f6] via-[#8b5cf6] to-[#ec4899] flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:rotate-12 transition-transform duration-500 overflow-hidden p-1.5">
+            <img 
+              src="/favicon.png" 
+              alt="joojle logo" 
+              className="w-full h-full object-contain pointer-events-none drop-shadow-md"
+              onError={(e) => {
+                // في حال فشل تحميل الصورة يظهر لون بسيط كاحتياط
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </div>
 
           {/* Text Animation: يختفي النص بحركة انزلاقية ناعمة جداً */}

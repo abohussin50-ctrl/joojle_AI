@@ -41,7 +41,11 @@ export function Message({ message }: MessageProps) {
             ? "bg-white/10 border-white/20 text-white" 
             : "bg-gradient-to-br from-primary to-purple-600 border-transparent text-white"
         )}>
-          {isUser ? <User className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+          {isUser ? (
+            <User className="w-5 h-5" />
+          ) : (
+            <img src="/favicon.png" className="w-full h-full object-contain p-1" alt="AI" />
+          )}
         </div>
       </div>
 
@@ -100,8 +104,8 @@ export function TypingIndicator() {
       animate={{ opacity: 1 }}
       className="flex gap-4 md:gap-6 py-6 px-4 md:px-8 w-full mx-auto max-w-4xl"
     >
-      <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-br from-primary to-purple-600 text-white animate-pulse">
-        <Sparkles className="w-5 h-5" />
+      <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-br from-primary to-purple-600 p-1 overflow-hidden animate-pulse">
+        <img src="/favicon.png" className="w-full h-full object-contain" alt="AI Loading" />
       </div>
       <div className="flex items-center gap-1">
         <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></span>

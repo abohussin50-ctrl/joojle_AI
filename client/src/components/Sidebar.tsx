@@ -186,10 +186,14 @@ export function Sidebar() {
   );
 
   const SidebarContent = () => (
-    <div className={cn(
-      "flex flex-col h-full bg-[#131314] backdrop-blur-xl border-r border-white/5 transition-all duration-300",
-      isCollapsed ? "w-20" : "w-72"
-    )}>
+    <motion.div 
+      initial={false}
+      animate={{ width: isCollapsed ? 80 : 288 }}
+      transition={{ type: "spring", damping: 25, stiffness: 200 }}
+      className={cn(
+        "flex flex-col h-full bg-[#131314] backdrop-blur-xl border-r border-white/5 overflow-hidden"
+      )}
+    >
       {/* Header with Logo and Collapse Button */}
       <div className={cn(
         "flex items-center p-4 mb-2 relative",
@@ -199,20 +203,11 @@ export function Sidebar() {
           <div className="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
-          <AnimatePresence mode="wait">
-            {!isCollapsed && (
-              <motion.span 
-                key="logo-text"
-                initial={{ opacity: 0, x: -10, width: 0 }}
-                animate={{ opacity: 1, x: 0, width: "auto" }}
-                exit={{ opacity: 0, x: -10, width: 0 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="text-xl font-bold bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent truncate whitespace-nowrap"
-              >
-                joojle
-              </motion.span>
-            )}
-          </AnimatePresence>
+          {!isCollapsed && (
+            <span className="text-xl font-bold bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent truncate whitespace-nowrap">
+              joojle
+            </span>
+          )}
         </div>
         
         {/* Minimize Button - Desktop Only */}
@@ -417,12 +412,16 @@ export function Sidebar() {
         </button>
       </div>
 
-      <div className={cn(
-        "hidden md:block h-screen fixed left-0 top-0 bottom-0 z-30 transition-all duration-300",
-        isCollapsed ? "w-20" : "w-72"
-      )}>
+      <motion.div 
+        initial={false}
+        animate={{ width: isCollapsed ? 80 : 288 }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className={cn(
+          "hidden md:block h-screen fixed left-0 top-0 bottom-0 z-30 overflow-hidden"
+        )}
+      >
         <SidebarContent />
-      </div>
+      </motion.div>
 
       <AnimatePresence>
         {isMobileOpen && (

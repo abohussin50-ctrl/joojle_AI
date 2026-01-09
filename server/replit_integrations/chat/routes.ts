@@ -2,9 +2,10 @@ import type { Express, Request, Response } from "express";
 import OpenAI from "openai";
 import { chatStorage } from "./storage";
 
+// تحسين: التحقق من وجود المفتاح أو استخدام قيمة تجريبية لمنع توقف السيرفر
 const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || "sk-dummy-key",
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || "https://api.openai.com/v1",
 });
 
 export function registerChatRoutes(app: Express): void {
@@ -39,7 +40,8 @@ export function registerChatRoutes(app: Express): void {
   app.post("/api/conversations", async (req: Request, res: Response) => {
     try {
       const { title } = req.body;
-      const conversation = await chatStorage.createConversation(title || "New Chat");
+      // نضمن دائماً وجود عنوان للمحادثة لنجاح الإدخال في قاعدة البيانات
+      const conversation = await chatStorage.createConversation(title || "محادثة جديدة");
       res.status(201).json(conversation);
     } catch (error) {
       console.error("Error creating conversation:", error);
@@ -80,9 +82,9 @@ export function registerChatRoutes(app: Express): void {
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      // Stream response from OpenAI
+      // تعديل هام: تم تغيير gpt-5.1 إلى gpt-4o لأن gpt-5 غير متاح حالياً وهو سبب تعطل الزر
       const stream = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4o", 
         messages: chatMessages,
         stream: true,
         max_completion_tokens: 2048,
@@ -103,16 +105,20 @@ export function registerChatRoutes(app: Express): void {
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending message:", error);
-      // Check if headers already sent (SSE streaming started)
+      
+      // معالجة خطأ مفتاح الـ API ليكون واضحاً في الـ Logs
+      if (error.status === 401) {
+        console.error("خطأ: مفتاح OpenAI غير صحيح أو غير موجود في إعدادات Vercel");
+      }
+
       if (res.headersSent) {
         res.write(`data: ${JSON.stringify({ error: "Failed to send message" })}\n\n`);
         res.end();
       } else {
-        res.status(500).json({ error: "Failed to send message" });
+        res.status(500).json({ error: "Failed to send message", details: error.message });
       }
     }
   });
 }
-

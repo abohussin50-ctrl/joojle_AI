@@ -2,96 +2,87 @@ import type { Express, Request, Response } from "express";
 import OpenAI from "openai";
 import { chatStorage } from "./storage";
 
-// تحسين: التحقق من وجود المفتاح أو استخدام قيمة تجريبية لمنع توقف السيرفر
 const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || "sk-dummy-key",
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || "https://api.openai.com/v1",
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
 export function registerChatRoutes(app: Express): void {
-  // Get all conversations
-  app.get("/api/conversations", async (req: Request, res: Response) => {
+  // تم تغيير المسار ليتوافق مع الواجهة وحل خطأ 405
+  app.get("/api/chats", async (req: Request, res: Response) => {
     try {
       const conversations = await chatStorage.getAllConversations();
       res.json(conversations);
     } catch (error) {
-      console.error("Error fetching conversations:", error);
-      res.status(500).json({ error: "Failed to fetch conversations" });
+      console.error("Error fetching chats:", error);
+      res.status(500).json({ error: "Failed to fetch chats" });
     }
   });
 
-  // Get single conversation with messages
-  app.get("/api/conversations/:id", async (req: Request, res: Response) => {
+  app.get("/api/chats/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const conversation = await chatStorage.getConversation(id);
       if (!conversation) {
-        return res.status(404).json({ error: "Conversation not found" });
+        return res.status(404).json({ error: "Chat not found" });
       }
       const messages = await chatStorage.getMessagesByConversation(id);
       res.json({ ...conversation, messages });
     } catch (error) {
-      console.error("Error fetching conversation:", error);
-      res.status(500).json({ error: "Failed to fetch conversation" });
+      console.error("Error fetching chat:", error);
+      res.status(500).json({ error: "Failed to fetch chat" });
     }
   });
 
-  // Create new conversation
-  app.post("/api/conversations", async (req: Request, res: Response) => {
+  // تم تغيير المسار ليتوافق مع طلب الواجهة في الصورة
+  app.post("/api/chats", async (req: Request, res: Response) => {
     try {
       const { title } = req.body;
-      // نضمن دائماً وجود عنوان للمحادثة لنجاح الإدخال في قاعدة البيانات
       const conversation = await chatStorage.createConversation(title || "محادثة جديدة");
       res.status(201).json(conversation);
     } catch (error) {
-      console.error("Error creating conversation:", error);
-      res.status(500).json({ error: "Failed to create conversation" });
+      console.error("Error creating chat:", error);
+      res.status(500).json({ error: "Failed to create chat" });
     }
   });
 
-  // Delete conversation
-  app.delete("/api/conversations/:id", async (req: Request, res: Response) => {
+  app.delete("/api/chats/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       await chatStorage.deleteConversation(id);
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting conversation:", error);
-      res.status(500).json({ error: "Failed to delete conversation" });
+      console.error("Error deleting chat:", error);
+      res.status(500).json({ error: "Failed to delete chat" });
     }
   });
 
-  // Send message and get AI response (streaming)
-  app.post("/api/conversations/:id/messages", async (req: Request, res: Response) => {
+  app.post("/api/chats/:id/messages", async (req: Request, res: Response) => {
     try {
-      const conversationId = parseInt(req.params.id);
+      const chatId = parseInt(req.params.id);
       const { content } = req.body;
 
-      // Save user message
-      await chatStorage.createMessage(conversationId, "user", content);
+      await chatStorage.createMessage(chatId, "user", content);
 
-      // Get conversation history for context
-      const messages = await chatStorage.getMessagesByConversation(conversationId);
+      const messages = await chatStorage.getMessagesByConversation(chatId);
       const chatMessages = messages.map((m) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
       }));
 
-      // Set up SSE
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      // تعديل هام: تم تغيير gpt-5.1 إلى gpt-4o لأن gpt-5 غير متاح حالياً وهو سبب تعطل الزر
+      // تم تغيير الموديل من gpt-5.1 (غير موجود) إلى gpt-4o ليعمل البوت
       const stream = await openai.chat.completions.create({
-        model: "gpt-4o", 
+        model: "gpt-4o",
         messages: chatMessages,
         stream: true,
         max_completion_tokens: 2048,
       });
 
       let fullResponse = "";
-
       for await (const chunk of stream) {
         const content = chunk.choices[0]?.delta?.content || "";
         if (content) {
@@ -100,24 +91,16 @@ export function registerChatRoutes(app: Express): void {
         }
       }
 
-      // Save assistant message
-      await chatStorage.createMessage(conversationId, "assistant", fullResponse);
-
+      await chatStorage.createMessage(chatId, "assistant", fullResponse);
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error sending message:", error);
-      
-      // معالجة خطأ مفتاح الـ API ليكون واضحاً في الـ Logs
-      if (error.status === 401) {
-        console.error("خطأ: مفتاح OpenAI غير صحيح أو غير موجود في إعدادات Vercel");
-      }
-
       if (res.headersSent) {
         res.write(`data: ${JSON.stringify({ error: "Failed to send message" })}\n\n`);
         res.end();
       } else {
-        res.status(500).json({ error: "Failed to send message", details: error.message });
+        res.status(500).json({ error: "Failed to send message" });
       }
     }
   });

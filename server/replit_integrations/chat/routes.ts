@@ -8,7 +8,7 @@ const openai = new OpenAI({
 });
 
 export function registerChatRoutes(app: Express): void {
-  // جلب كل المحادثات
+  // 1. مسار جلب المحادثات (GET api/chats)
   app.get("/api/chats", async (req: Request, res: Response) => {
     try {
       const conversations = await chatStorage.getAllConversations();
@@ -18,20 +18,21 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
-  // إنشاء محادثة جديدة (هنا تم الإصلاح)
+  // 2. مسار إنشاء محادثة (POST api/chats)
   app.post("/api/chats", async (req: Request, res: Response) => {
     try {
       const { title } = req.body;
+      // استخراج x-user-id لضمان القبول في قاعدة البيانات
       const userId = req.headers["x-user-id"] as string || "default_user";
-      const conversation = await chatStorage.createConversation(title || "محادثة جديدة", userId);
+      const conversation = await chatStorage.createConversation(title || "New Chat", userId);
       res.status(201).json(conversation);
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Creation Error:", error);
       res.status(500).json({ error: "Failed to create chat" });
     }
   });
 
-  // إرسال رسالة واستقبال رد AI
+  // 3. مسار الرسائل (POST api/chats/:id/messages)
   app.post("/api/chats/:id/messages", async (req: Request, res: Response) => {
     try {
       const chatId = parseInt(req.params.id);
@@ -49,7 +50,7 @@ export function registerChatRoutes(app: Express): void {
       res.setHeader("Connection", "keep-alive");
 
       const stream = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4o", // تم التصحيح لضمان العمل
         messages: chatMessages,
         stream: true,
       });

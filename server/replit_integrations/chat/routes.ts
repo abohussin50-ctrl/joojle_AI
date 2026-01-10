@@ -8,7 +8,7 @@ const openai = new OpenAI({
 });
 
 export function registerChatRoutes(app: Express): void {
-  // تم تغيير المسار ليتوافق مع الواجهة وحل خطأ 405
+  // جلب المحادثات - تم استخدام المسار الموحدchats
   app.get("/api/chats", async (req: Request, res: Response) => {
     try {
       const conversations = await chatStorage.getAllConversations();
@@ -19,6 +19,7 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
+  // جلب محادثة مفردة برسائلها
   app.get("/api/chats/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
@@ -34,11 +35,17 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
-  // تم تغيير المسار ليتوافق مع طلب الواجهة في الصورة
+  // إنشاء محادثة جديدة - يدعم الآن x-user-id لحل مشكلة الإدخال
   app.post("/api/chats", async (req: Request, res: Response) => {
     try {
       const { title } = req.body;
-      const conversation = await chatStorage.createConversation(title || "محادثة جديدة");
+      
+      // استخراج المعرف من الهيدرز كما يرسله الكود الذي فحصته في المتصفح
+      const userId = req.headers["x-user-id"] as string || "default_user";
+
+      // تمرير الـ userId لضمان مطابقة الـ Schema (userId: text().notNull())
+      const conversation = await chatStorage.createConversation(title || "محادثة جديدة", userId);
+      
       res.status(201).json(conversation);
     } catch (error) {
       console.error("Error creating chat:", error);
@@ -46,6 +53,7 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
+  // حذف محادثة
   app.delete("/api/chats/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
@@ -57,24 +65,28 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
+  // إرسال رسالة والحصول على رد الذكاء الاصطناعي
   app.post("/api/chats/:id/messages", async (req: Request, res: Response) => {
     try {
       const chatId = parseInt(req.params.id);
       const { content } = req.body;
 
+      // حفظ رسالة المستخدم
       await chatStorage.createMessage(chatId, "user", content);
 
+      // جلب تاريخ المحادثة للسياق
       const messages = await chatStorage.getMessagesByConversation(chatId);
       const chatMessages = messages.map((m) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
       }));
 
+      // إعداد SSE للبث المباشر
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      // تم تغيير الموديل من gpt-5.1 (غير موجود) إلى gpt-4o ليعمل البوت
+      // استخدام الموديل gpt-4o لضمان استقرار الخدمة
       const stream = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: chatMessages,
@@ -91,7 +103,9 @@ export function registerChatRoutes(app: Express): void {
         }
       }
 
+      // حفظ رد المساعد
       await chatStorage.createMessage(chatId, "assistant", fullResponse);
+
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
     } catch (error) {
